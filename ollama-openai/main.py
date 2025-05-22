@@ -2,10 +2,13 @@ import os
 import json
 from settings import Settings
 from ollama_client import OpenAIClient, ChatRunner
-from models import Models
-from prompt import Prompt
 
 settings = Settings()
+
+def get_models():
+    if hasattr(settings, 'models'):
+        return [(m['display_name'], m['model_id']) for m in settings.models]
+    return []
 
 def get_questions_from_folder(folder):
     questions = []
@@ -43,7 +46,7 @@ def get_llm_response(runner, model, prompt, stream):
         return response['message']['content']
 
 def select_model():
-    models = Models().get_models()
+    models = get_models()
     print("Select a local model:")
     for idx, (name, _) in enumerate(models, 1):
         print(f"{idx}. {name}")
@@ -56,7 +59,7 @@ def select_model():
     return selected_model
 
 if __name__ == "__main__":
-    folder = os.path.join("../data/questions", "exercises1")
+    folder = settings.folders['data_folder_name']
     if not os.path.exists(folder):
         print(f"Folder {folder} does not exist.")
         exit(1)
@@ -77,7 +80,7 @@ if __name__ == "__main__":
         run_folder = None
 
     for idx, (filename, question) in enumerate(questions, 1):
-        prompt = Prompt.default_prompt + question        
+        prompt = settings.default_prompt + question        
         print(f"\n{prompt}")
 
         answer = get_llm_response(runner, selected_model, prompt, stream)
@@ -90,7 +93,7 @@ if __name__ == "__main__":
                 "question": question,
                 "answer": answer_no_newlines
             }
-            out_file = os.path.join(run_folder, f"question_{idx}.json")
+            out_file = os.path.join(run_folder, f"{settings.files['question_file_name']}{idx}.json")
             print(f"Writing to file: {out_file}")
             with open(out_file, "w") as f:
                 json.dump(output, f, indent=2)
