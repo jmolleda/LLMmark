@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from settings import Settings
 from ollama_client import OpenAIClient, ChatRunner
@@ -79,9 +80,7 @@ def main():
 
     questions = get_questions_from_folder(folder, settings)
 
-    run_folder = None
-    if not stream:
-        run_folder = create_run_folder(settings)
+    run_folder = create_run_folder(settings) if not stream else None
 
     for idx, (filename, question) in enumerate(questions, 1):
         prompt = settings.default_prompt + question
@@ -90,11 +89,13 @@ def main():
         answer = get_llm_response(runner, selected_model, prompt, stream)
 
         if not stream:
+            # Remove newlines and <think>...</think> blocks
             answer_no_newlines = answer.replace('\n', '') if answer else ''
-            print(answer_no_newlines)
+            answer_cleaned = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
+            print(answer_cleaned)
             output = {
                 "question": question,
-                "answer": answer_no_newlines
+                "answer": answer_cleaned
             }
             out_file = os.path.join(run_folder, f"{settings.files['question_file_name']}{idx}.json")
             print(f"Writing to file: {out_file}")
