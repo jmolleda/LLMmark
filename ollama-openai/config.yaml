@@ -1,10 +1,12 @@
 models:
+  - display_name: "DeepSeek R1:1.5b"
+    model_id: "deepseek-r1:1.5b"    # 1.1 GB
   - display_name: "Gemma3:1b"
-    model_id: "gemma3:1b"
+    model_id: "gemma3:1b"           # 815 MB
   - display_name: "Moondream 2"
-    model_id: "moondream"
+    model_id: "moondream:1.8b"      # 1.7 GB
   - display_name: "Qwen3:0.6b"
-    model_id: "qwen3:0.6b"
+    model_id: "qwen3:0.6b"          # 523 MB
 
 default_prompt: |
   You are an AI assistant that provides concise and direct answers.
