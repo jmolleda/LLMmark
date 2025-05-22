@@ -1,0 +1,9 @@
+files:
+  question_file_name: "question_"
+  question_file_extension: ".txt"
+
+folders:
+  experiment_folder_name: "run_"
+
+paths:
+  base_experiments_folder: "../data/runs"
