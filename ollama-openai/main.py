@@ -2,6 +2,7 @@ import os
 import json
 from ollama_client import OpenAIClient, ChatRunner
 from models import Models
+from prompt import Prompt
 
 def get_questions_from_folder(folder):
     questions = []
@@ -72,8 +73,12 @@ if __name__ == "__main__":
         run_folder = None
 
     for idx, (filename, question) in enumerate(questions, 1):
-        print(f"\n{question}")
-        answer = get_llm_response(runner, model=selected_model, prompt=question, stream=stream)
+        prompt = Prompt.default_prompt + question        
+        print(f"\n{prompt}")
+
+        answer = get_llm_response(runner, selected_model, prompt, stream)
+
+        # If not streaming, save the answer to a .json file
         if not stream:
             answer_no_newlines = answer.replace('\n', '') if answer else ''
             print(answer_no_newlines)
