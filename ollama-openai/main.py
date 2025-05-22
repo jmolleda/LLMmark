@@ -75,12 +75,16 @@ def pull_model(model_name: str, ollama_base_url) -> None:
         print(f"Error pulling model: {e}")    
 
 def select_model(settings):
-    """Prompt the user to select a model from config. If not installed, offer to pull it."""
+    """Prompt the user to select a model from config, or all models. If not installed, offer to pull it."""
     models = get_models(settings)
-    print("Select a local model:")
+    print("Available Ollama models:")
     for idx, (name, _) in enumerate(models, 1):
         print(f"{idx}. {name}")
-    choice = input("Enter model number [1]: ").strip()
+
+    choice = input("Enter model number or 'A' to run all models (default [1]): ").strip().lower()
+    if choice == 'a':
+        return [m[1] for m in models], True
+
     if not choice or not choice.isdigit() or int(choice) < 1 or int(choice) > len(models):
         selected_model = models[0][1]
     else:
@@ -88,7 +92,7 @@ def select_model(settings):
     print(f"Selected model: {selected_model}")
 
     if not is_model_installed(selected_model, settings.ollama['base_url']):
-        print(f"{selected_model} is not available in ollama.")
+        print(f"{selected_model} is not available in Ollama.")
         confirm = input(f"Do you want to pull '{selected_model}'? (Y/n): ").strip().lower()
         if confirm == '' or confirm == 'y':
             pull_model(selected_model, settings.ollama['base_url'])
@@ -100,7 +104,30 @@ def select_model(settings):
         else:
             print("Installation cancelled.")      
 
-    return selected_model
+    return selected_model, False
+
+def run_questions_for_model(model_display_name, model_id, questions, settings, runner, stream, run_folder):
+    print(f"\n\033[92m=== Running questions for model: {model_display_name} ({model_id}) ===\033[0m")
+    model_run_folder = None
+    if not stream and run_folder:
+        model_run_folder = os.path.join(run_folder, model_id)
+        os.makedirs(model_run_folder, exist_ok=True)
+    for idx, (filename, question) in enumerate(questions, 1):
+        prompt = settings.default_prompt + question
+        print(f"\n{prompt}")
+        answer = get_llm_response(runner, model_id, prompt, stream)
+        if not stream:
+            answer_no_newlines = answer.replace('\n', '') if answer else ''
+            answer_cleaned = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
+            print(answer_cleaned)
+            output = {
+                "question": question,
+                "answer": answer_cleaned
+            }
+            out_file = os.path.join(model_run_folder, f"{settings.files['question_file_name']}{idx}.json")
+            print(f"Writing to file: {out_file}")
+            with open(out_file, "w") as f:
+                json.dump(output, f, indent=2)
 
 def main():
     settings = Settings()
@@ -109,38 +136,31 @@ def main():
     if not os.path.exists(folder):
         print(f"Folder {folder} does not exist.")
         exit(1)
-    print(f"Using folder: {folder}")
+    print(f"Using folder: {folder}")    
 
-    selected_model = select_model(settings)
+    selected, run_all_models = select_model(settings)
 
     stream_input = input("Do you want to run in streaming mode? (Y/n): ").strip().lower()
     stream = (stream_input == '' or stream_input == 'y')
+    run_folder = create_run_folder(settings) if not stream else None
+
     client = OpenAIClient(settings.ollama['base_url'], settings.ollama['api_key'])
     runner = ChatRunner(client)
 
-    questions = get_questions_from_folder(folder, settings)
+    questions = get_questions_from_folder(folder, settings)    
+    
+    models = get_models(settings)
 
-    run_folder = create_run_folder(settings) if not stream else None
-
-    for idx, (filename, question) in enumerate(questions, 1):
-        prompt = settings.default_prompt + question
-        print(f"\n{prompt}")
-
-        answer = get_llm_response(runner, selected_model, prompt, stream)
-
-        if not stream:
-            # Remove newlines and <think>...</think> blocks
-            answer_no_newlines = answer.replace('\n', '') if answer else ''
-            answer_cleaned = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
-            print(answer_cleaned)
-            output = {
-                "question": question,
-                "answer": answer_cleaned
-            }
-            out_file = os.path.join(run_folder, f"{settings.files['question_file_name']}{idx}.json")
-            print(f"Writing to file: {out_file}")
-            with open(out_file, "w") as f:
-                json.dump(output, f, indent=2)
+    if run_all_models:
+        # selected is a list of model_ids
+        model_id_set = set(selected)
+        for model_display_name, model_id in models:
+            if model_id in model_id_set:
+                run_questions_for_model(model_display_name, model_id, questions, settings, runner, stream, run_folder)
+    else:
+        selected_model = selected
+        model_display_name = next((name for name, mid in models if mid == selected_model), selected_model)
+        run_questions_for_model(model_display_name, selected_model, questions, settings, runner, stream, run_folder)
 
 if __name__ == "__main__":
     main()
