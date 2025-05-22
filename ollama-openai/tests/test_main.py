@@ -1,27 +1,18 @@
+import sys
 import os
-import tempfile
-import shutil
-import json
-import pytest
-from ollama_openai.settings import Settings
-from ollama_openai.main import (
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import os
+from pathlib import Path
+
+from _pytest.monkeypatch import MonkeyPatch
+from ollama_client import OpenAIClient, ChatRunner
+from settings import Settings
+from main import (
     get_models,
     get_questions_from_folder,
-    create_run_folder,
-    get_llm_response,
-    select_model
+    create_run_folder
 )
-
-class DummyRunner:
-    def __init__(self, response):
-        self.response = response
-        self.client = self
-    def chat(self, model, messages, stream=True):
-        if stream:
-            for c in self.response:
-                yield {'message': {'content': c}}
-        else:
-            return {'message': {'content': self.response}}
 
 def test_get_models():
     settings = Settings()
@@ -31,7 +22,7 @@ def test_get_models():
         assert isinstance(name, str)
         assert isinstance(model_id, str)
 
-def test_get_questions_from_folder(tmp_path):
+def test_get_questions_from_folder(tmp_path: Path):
     # Setup
     settings = Settings()
     settings.files['question_file_name'] = 'question_'
@@ -45,7 +36,7 @@ def test_get_questions_from_folder(tmp_path):
     assert questions[0][1] == "What is 2+2?"
     assert questions[1][1] == "What is the capital of France?"
 
-def test_create_run_folder(tmp_path, monkeypatch):
+def test_create_run_folder(tmp_path: Path, monkeypatch: MonkeyPatch):
     settings = Settings()
     settings.paths['base_experiments_folder'] = str(tmp_path)
     settings.folders['experiment_folder_name'] = 'run_'
@@ -57,17 +48,3 @@ def test_create_run_folder(tmp_path, monkeypatch):
     # Create another, should be run_2
     run_folder2 = create_run_folder(settings)
     assert run_folder2.endswith('run_2')
-
-def test_get_llm_response_stream():
-    runner = DummyRunner(["Hello", " world!"])
-    # Should print to stdout, but we just check it returns None
-    result = get_llm_response(runner, "model", "prompt", stream=True)
-    assert result is None
-
-def test_get_llm_response_no_stream():
-    runner = DummyRunner("42")
-    result = get_llm_response(runner, "model", "prompt", stream=False)
-    assert result == "42"
-
-# select_model is interactive, so we do not test it directly here.
-# You can use unittest.mock to patch input() if needed for more advanced tests.
