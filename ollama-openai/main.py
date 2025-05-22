@@ -119,7 +119,7 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, r
         if not stream:
             answer_no_newlines = answer.replace('\n', '') if answer else ''
             answer_cleaned = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
-            print(answer_cleaned)
+            #print(answer_cleaned)
             output = {
                 "question": question,
                 "answer": answer_cleaned
@@ -136,7 +136,7 @@ def main():
     if not os.path.exists(folder):
         print(f"Folder {folder} does not exist.")
         exit(1)
-    print(f"Using folder: {folder}")    
+    print(f"Question dataset folder: {folder}")    
 
     selected, run_all_models = select_model(settings)
 
