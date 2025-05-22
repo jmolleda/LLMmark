@@ -13,6 +13,10 @@ default_prompt: |
   Answer the following question without explanation or reasoning.
   Give only the specific answer.
 
+ollama:
+  base_url: "http://localhost:11434/"
+  api_key: "ollama"
+
 files:
   question_file_name: "question_"
   question_file_extension: ".txt"

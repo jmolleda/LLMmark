@@ -24,7 +24,7 @@ class OpenAIClient:
             Returns:
                 The response from the Ollama API, either as a stream or a complete result.
     """
-    def __init__(self, base_url="http://localhost:11434/v1", api_key="ollama"):
+    def __init__(self, base_url, api_key):
         # OpenAI-compatible client for Ollama
         self.client = openai.OpenAI(
             base_url=base_url,
