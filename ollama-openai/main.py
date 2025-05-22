@@ -116,25 +116,29 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, r
     for idx, (filename, question) in enumerate(questions, 1):
         prompt = settings.default_prompt + question
         print(f"\n{prompt}")
-        answer = get_llm_response(runner, model_id, prompt, stream)
+        outputs = []
+        for run_idx in range(settings.num_runs_per_question):
+            answer = get_llm_response(runner, model_id, prompt, stream)
+            if not stream:
+                answer_no_newlines = answer.replace('\n', '') if answer else ''
+                answer_no_think = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
+                # Keep only text matching the pattern [*], where * is a single character
+                matches = re.findall(r'\[[^\]]\]', answer_no_think)
+                answer_clean = ''.join(matches)
+                print()
+                print(f"\033[93m{answer_clean}\033[0m")
+                print()
+                outputs.append({
+                    "question": question,
+                    "answer": answer_clean,
+                    "raw_answer": answer_no_think,
+                })
+
         if not stream:
-            answer_no_newlines = answer.replace('\n', '') if answer else ''
-            answer_no_think = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
-            # Keep only text matching the pattern [*], where * is a single character
-            matches = re.findall(r'\[[^\]]\]', answer_no_think)
-            answer = ''.join(matches)
-            print()
-            print(f"\033[93m{answer}\033[0m")
-            print()
-            output = {
-                "question": question,
-                "answer": answer,
-                "raw_answer": answer_no_think,
-            }
             out_file = os.path.join(model_run_folder, f"{settings.files['question_file_name']}{idx}.json")
             print(f"Writing to file: {out_file}")
             with open(out_file, "w") as f:
-                json.dump(output, f, indent=2)
+                json.dump(outputs, f, indent=2)
 
 def main():
     settings = Settings()

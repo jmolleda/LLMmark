@@ -17,10 +17,10 @@ models:
 #    model_id: "qwen3:0.6b"            # 523 MB
 
 default_prompt: |
-  You are an AI assistant that select the correct answer from the options below.
-  You must answer ONLY [a], [b], [c] or [d].
-  You must adhere to the exact syntax of the options: [a], [b], [c] or [d].
-  You are not allowed to provide any other information or explanation.
+  You are an AI assistant that answers multiple-choice questions.
+  You must respond with exactly one of the following options: [a], [b], [c], [d], [e], or [f].
+  Your response must match the format of the options exactly, including brackets and lowercase letters.
+  Do not include any explanation, commentary, or additional text—only the selected option.
 
 ollama:
   base_url: "http://localhost:11434/"
@@ -36,3 +36,5 @@ folders:
 
 paths:
   base_experiments_folder: "../data/runs"
+
+num_runs_per_question: 10
