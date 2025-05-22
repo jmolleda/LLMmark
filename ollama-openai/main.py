@@ -1,6 +1,7 @@
 import os
 import json
 from ollama_client import OpenAIClient, ChatRunner
+from models import Models
 
 def get_questions_from_folder(folder):
     questions = []
@@ -30,11 +31,24 @@ def get_llm_response(runner, model, prompt, stream):
     if stream:
         for chunk in runner.client.chat(model=model, messages=[{"role": "user", "content": prompt}], stream=True):
             print(chunk['message']['content'], end='', flush=True)
-        print()  # Newline after streaming output
+        print()
         return None
     else:
         response = runner.client.chat(model=model, messages=[{"role": "user", "content": prompt}], stream=False)
         return response['message']['content']
+
+def select_model():
+    models = Models().get_models()
+    print("Select a local model:")
+    for idx, (name, _) in enumerate(models, 1):
+        print(f"{idx}. {name}")
+    choice = input(f"Enter model number [1]: ").strip()
+    if choice == "" or not choice.isdigit() or int(choice) < 1 or int(choice) > len(models):
+        selected_model = models[0][1]
+    else:
+        selected_model = models[int(choice)-1][1]
+    print(f"Selected model: {selected_model}")
+    return selected_model
 
 if __name__ == "__main__":
     folder = os.path.join("../data/questions", "exercises1")
@@ -42,6 +56,8 @@ if __name__ == "__main__":
         print(f"Folder {folder} does not exist.")
         exit(1)
     print(f"Using folder: {folder}")
+
+    selected_model = select_model()
 
     stream_input = input("Do you want to run in streaming mode? (Y/n): ").strip().lower()
     stream = (stream_input == "" or stream_input == "y")
@@ -57,7 +73,7 @@ if __name__ == "__main__":
 
     for idx, (filename, question) in enumerate(questions, 1):
         print(f"\n{question}")
-        answer = get_llm_response(runner, model="gemma3:1b", prompt=question, stream=stream)
+        answer = get_llm_response(runner, model=selected_model, prompt=question, stream=stream)
         if not stream:
             answer_no_newlines = answer.replace('\n', '') if answer else ''
             print(answer_no_newlines)
