@@ -3,7 +3,7 @@ class Models:
         self.models = [
             # (display_name, model_id)
             ("Gemma3:1b", "gemma3:1b"),
-            ("Moondream", "moondream"),
+            ("Moondream 2", "moondream"),
         ]
 
     def get_models(self):
