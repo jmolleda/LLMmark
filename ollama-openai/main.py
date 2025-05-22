@@ -1,13 +1,16 @@
 import os
 import json
+from settings import Settings
 from ollama_client import OpenAIClient, ChatRunner
 from models import Models
 from prompt import Prompt
 
+settings = Settings()
+
 def get_questions_from_folder(folder):
     questions = []
     for filename in sorted(os.listdir(folder)):
-        if filename.startswith("question_") and filename.endswith(".txt"):
+        if filename.startswith(settings.files['question_file_name']) and filename.endswith(settings.files['question_file_extension']):
             file_path = os.path.join(folder, filename)
             print(f"Reading file: {file_path}")
             if not os.path.exists(file_path):
@@ -17,12 +20,13 @@ def get_questions_from_folder(folder):
                 questions.append((filename, f.read().strip()))
     return questions
 
-def create_run_folder(base_runs_folder="../data/runs"):
-    os.makedirs(base_runs_folder, exist_ok=True)
-    existing = [d for d in os.listdir(base_runs_folder) if d.startswith("run_") and os.path.isdir(os.path.join(base_runs_folder, d))]
+def create_run_folder(base_experiments_folder=settings.paths['base_experiments_folder']):
+    os.makedirs(base_experiments_folder, exist_ok=True)
+    experiment_prefix = settings.folders['experiment_folder_name']
+    existing = [d for d in os.listdir(base_experiments_folder) if d.startswith(experiment_prefix) and os.path.isdir(os.path.join(base_experiments_folder, d))]
     run_numbers = [int(d.split("_")[1]) for d in existing if d.split("_")[1].isdigit()]
     n = max(run_numbers, default=0) + 1
-    run_folder = os.path.join(base_runs_folder, f"run_{n}")
+    run_folder = os.path.join(base_experiments_folder, f"{experiment_prefix}{n}")
     os.makedirs(run_folder)
     print(f"Created run experiment folder: {run_folder}")
     return run_folder
