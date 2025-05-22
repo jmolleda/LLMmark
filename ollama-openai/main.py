@@ -44,8 +44,9 @@ def create_run_folder(settings):
 def get_llm_response(runner, model, prompt, stream):
     """Get the LLM response, streaming or not."""
     if stream:
+        print()
         for chunk in runner.client.chat(model=model, messages=[{"role": "user", "content": prompt}], stream=True):
-            print(chunk['message']['content'], end='', flush=True)
+            print(f"\033[93m{chunk['message']['content']}\033[0m", end='', flush=True)
         print()
         return None
     response = runner.client.chat(model=model, messages=[{"role": "user", "content": prompt}], stream=False)
@@ -118,11 +119,17 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, r
         answer = get_llm_response(runner, model_id, prompt, stream)
         if not stream:
             answer_no_newlines = answer.replace('\n', '') if answer else ''
-            answer_cleaned = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
-            #print(answer_cleaned)
+            answer_no_think = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
+            # Keep only text matching the pattern [*], where * is a single character
+            matches = re.findall(r'\[[^\]]\]', answer_no_think)
+            answer = ''.join(matches)
+            print()
+            print(f"\033[93m{answer}\033[0m")
+            print()
             output = {
                 "question": question,
-                "answer": answer_cleaned
+                "answer": answer,
+                "raw_answer": answer_no_think,
             }
             out_file = os.path.join(model_run_folder, f"{settings.files['question_file_name']}{idx}.json")
             print(f"Writing to file: {out_file}")
