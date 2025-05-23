@@ -45,10 +45,16 @@ class ChatRunner:
 
     def run(self, model, prompt, stream=True):
         messages = [{"role": "user", "content": prompt}]
-        response = self.client.chat(model=model, messages=messages, stream=stream)
+        try:
+            response = self.client.chat(model=model, messages=messages, stream=stream)
+        except ollama.ResponseError as e:
+            print('\033[91mError:', e.error, '\033[0m')
+            return
         if stream:
             for chunk in response:
                 print(chunk['message']['content'], end='', flush=True)
             print()
         else:
             print(response['message']['content'])
+
+            
