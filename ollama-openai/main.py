@@ -45,8 +45,7 @@ def get_llm_response(runner, model, prompt, stream):
     """Get the LLM response, streaming or not."""
     if stream:
         for chunk in runner.client.chat(model=model, messages=[{"role": "user", "content": prompt}], stream=True):
-            print(chunk['message']['content'], end='', flush=True)
-        print()
+            print(f"\033[93m{chunk['message']['content']}\033[0m", end='', flush=True)
         return None
     response = runner.client.chat(model=model, messages=[{"role": "user", "content": prompt}], stream=False)
     return response['message']['content']
@@ -106,39 +105,71 @@ def select_model(settings):
 
     return selected_model, False
 
-def run_questions_for_model(model_display_name, model_id, questions, settings, runner, stream, run_folder):
+def select_question_type(settings):
+    """Prompt the user to select open-answer or multiple-choice questions and return the base prompt."""
+    print("Select question type:")
+    print("1. Open-answer questions")
+    print("2. Multiple-choice questions")
+    while True:
+        qtype = input("Enter 1 or 2 (default [1]): ").strip()
+        if qtype in ('', '1', '2'):
+            break
+        print("Invalid input. Please enter 1 or 2.")
+    if qtype == '2':
+        return settings.prompts['multiple_choice_questions']
+    else:
+        return settings.prompts['open_answer_questions']
+
+def run_questions_for_model(model_display_name, model_id, questions, settings, runner, stream, run_folder, base_prompt):
     print(f"\n\033[92m=== Running questions for model: {model_display_name} ({model_id}) ===\033[0m")
     model_run_folder = None
     if not stream and run_folder:
         model_run_folder = os.path.join(run_folder, model_id)
         os.makedirs(model_run_folder, exist_ok=True)
+
+    # base_prompt is now passed as an argument from main
+
     for idx, (filename, question) in enumerate(questions, 1):
-        prompt = settings.default_prompt + question
+        prompt = base_prompt + question
         print(f"\n{prompt}")
-        answer = get_llm_response(runner, model_id, prompt, stream)
+        outputs = []
+        for run_idx in range(settings.num_runs_per_question):
+            print(f"\033[93mExperiment: {os.path.basename(run_folder) if run_folder else 'N/A'} | Model: {model_display_name} | Iteration: {run_idx + 1} | Answer: \033[0m")
+            answer = get_llm_response(runner, model_id, prompt, stream)
+            if not stream:
+                answer_no_newlines = answer.replace('\n', '') if answer else ''
+                answer_no_think = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
+                # Keep only text matching the pattern [*], where * is a single character
+                matches = re.findall(r'\[[^\]]\]', answer_no_think)
+                answer_clean = ''.join(matches)                
+                print(f"\033[93m{answer_clean}\033[0m")
+                outputs.append({
+                    "question": question,
+                    "answer": answer_clean,
+                    "raw_answer": answer_no_think,
+                })
+
         if not stream:
-            answer_no_newlines = answer.replace('\n', '') if answer else ''
-            answer_cleaned = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
-            #print(answer_cleaned)
-            output = {
-                "question": question,
-                "answer": answer_cleaned
-            }
             out_file = os.path.join(model_run_folder, f"{settings.files['question_file_name']}{idx}.json")
             print(f"Writing to file: {out_file}")
             with open(out_file, "w") as f:
-                json.dump(output, f, indent=2)
+                json.dump(outputs, f, indent=2)
 
 def main():
     settings = Settings()
     
+    # Access question dataset folder
     folder = settings.folders['data_folder_name']
     if not os.path.exists(folder):
         print(f"Folder {folder} does not exist.")
         exit(1)
     print(f"Question dataset folder: {folder}")    
 
+    # Select model(s) to run
     selected, run_all_models = select_model(settings)
+
+    # Select question type
+    base_prompt = select_question_type(settings)
 
     stream_input = input("Do you want to run in streaming mode? (Y/n): ").strip().lower()
     stream = (stream_input == '' or stream_input == 'y')
@@ -147,8 +178,7 @@ def main():
     client = OpenAIClient(settings.ollama['base_url'], settings.ollama['api_key'])
     runner = ChatRunner(client)
 
-    questions = get_questions_from_folder(folder, settings)    
-    
+    questions = get_questions_from_folder(folder, settings)
     models = get_models(settings)
 
     if run_all_models:
@@ -156,11 +186,11 @@ def main():
         model_id_set = set(selected)
         for model_display_name, model_id in models:
             if model_id in model_id_set:
-                run_questions_for_model(model_display_name, model_id, questions, settings, runner, stream, run_folder)
+                run_questions_for_model(model_display_name, model_id, questions, settings, runner, stream, run_folder, base_prompt)
     else:
         selected_model = selected
         model_display_name = next((name for name, mid in models if mid == selected_model), selected_model)
-        run_questions_for_model(model_display_name, selected_model, questions, settings, runner, stream, run_folder)
+        run_questions_for_model(model_display_name, selected_model, questions, settings, runner, stream, run_folder, base_prompt)
 
 if __name__ == "__main__":
     main()
