@@ -5,6 +5,15 @@ import requests
 from settings import Settings
 from ollama_client import OpenAIClient, ChatRunner, GenerateRunner
 
+def open_dataset_folder(settings):
+    """Open the folder containing the question dataset."""
+    folder = settings.folders['data_folder_name']
+    if not os.path.exists(folder):
+        print(f"Folder {folder} does not exist.")
+        exit(1)
+    print(f"Question dataset folder: {folder}")    
+    return folder
+
 def get_models(settings):
     """Return a list of (display_name, model_id) tuples from config."""
     return [
@@ -174,17 +183,17 @@ def main():
     settings = Settings()
     
     # Access question dataset folder
-    folder = settings.folders['data_folder_name']
-    if not os.path.exists(folder):
-        print(f"Folder {folder} does not exist.")
-        exit(1)
-    print(f"Question dataset folder: {folder}")    
+    folder = open_dataset_folder(settings)
 
     # Select model(s) to run
     selected, run_all_models = select_model(settings)
-
     client = OpenAIClient(settings.ollama['base_url'], settings.ollama['api_key'])
     runner = select_model_mode(client)
+    models = get_models(settings)
+    if run_all_models:
+        selected_models = [(name, mid) for name, mid in models if mid in set(selected)]
+    else:
+        selected_models = [(next((name for name, mid in models if mid == selected), selected), selected)]    
 
     # Select question type
     base_prompt = select_question_type(settings)
@@ -193,22 +202,15 @@ def main():
     stream_input = input("Do you want to run in streaming mode? (Y/n): ").strip().lower()
     stream = (stream_input == '' or stream_input == 'y')
 
-    #Create run folder if not streaming
+    # Create run folder if not streaming
     run_folder = create_run_folder(settings) if not stream else None
 
+    # Read questions from the dataset folder
     questions = get_questions_from_folder(folder, settings)
-    models = get_models(settings)
 
-    if run_all_models:
-        # selected is a list of model_ids
-        model_id_set = set(selected)
-        for model_display_name, model_id in models:
-            if model_id in model_id_set:
-                run_questions_for_model(model_display_name, model_id, questions, settings, runner, stream, run_folder, base_prompt)
-    else:
-        selected_model = selected
-        model_display_name = next((name for name, mid in models if mid == selected_model), selected_model)
-        run_questions_for_model(model_display_name, selected_model, questions, settings, runner, stream, run_folder, base_prompt)
+    # Run questions for each selected model
+    for model_display_name, model_id in selected_models:
+        run_questions_for_model(model_display_name, model_id, questions, settings, runner, stream, run_folder, base_prompt)
 
 if __name__ == "__main__":
     main()
