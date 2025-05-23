@@ -16,11 +16,17 @@ models:
 #  - display_name: "Qwen3:0.6b"
 #    model_id: "qwen3:0.6b"            # 523 MB
 
-default_prompt: |
-  You are an AI assistant that answers multiple-choice questions.
-  You must respond with exactly one of the following options: [a], [b], [c], [d], [e], or [f].
-  Your response must match the format of the options exactly, including brackets and lowercase letters.
-  Do not include any explanation, commentary, or additional text—only the selected option.
+prompts:
+  open_answer_questions: |
+    You are an AI assistant that provides concise and direct answers.
+    Answer the following question without explanation or reasoning.
+    Give only the specific answer.
+
+  multiple_choice_questions: |
+    You are an AI assistant that answers multiple-choice questions.
+    You must respond with exactly one of the following options: [a], [b], [c], [d], [e], or [f].
+    Your response must match the format of the options exactly, including brackets and lowercase letters.
+    Do not include any explanation, commentary, or additional text—only the selected option.
 
 ollama:
   base_url: "http://localhost:11434/"
@@ -31,7 +37,7 @@ files:
   question_file_extension: ".txt"
 
 folders:
-  data_folder_name: "../data/questions/exercises_options"
+  data_folder_name: "../data/questions/exercises1_all"
   experiment_folder_name: "run_"
 
 paths:
