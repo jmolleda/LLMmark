@@ -3,7 +3,7 @@ import re
 import json
 import requests
 from settings import Settings
-from ollama_client import OpenAIClient, ChatRunner
+from ollama_client import OpenAIClient, ChatRunner, GenerateRunner
 
 def get_models(settings):
     """Return a list of (display_name, model_id) tuples from config."""
@@ -105,6 +105,23 @@ def select_model(settings):
 
     return selected_model, False
 
+def select_model_mode(client):
+    """Prompt the user to select Chat or Generate mode and return the appropriate runner."""
+    print("Select model mode:")
+    print("1. Chat")
+    print("2. Generate")    
+    while True:
+        qtype = input("Enter 1 or 2 (default [1]): ").strip()
+        if qtype in ('', '1', '2'):
+            break
+        print("Invalid input. Please enter 1 or 2.")
+    if qtype == '2':
+        print("Generate mode selected.")
+        return GenerateRunner(client)
+    else:
+        print("Chat mode selected.")
+        return ChatRunner(client)
+
 def select_question_type(settings):
     """Prompt the user to select open-answer or multiple-choice questions and return the base prompt."""
     print("Select question type:")
@@ -126,8 +143,6 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, r
     if not stream and run_folder:
         model_run_folder = os.path.join(run_folder, model_id)
         os.makedirs(model_run_folder, exist_ok=True)
-
-    # base_prompt is now passed as an argument from main
 
     for idx, (filename, question) in enumerate(questions, 1):
         prompt = base_prompt + question
@@ -168,15 +183,18 @@ def main():
     # Select model(s) to run
     selected, run_all_models = select_model(settings)
 
+    client = OpenAIClient(settings.ollama['base_url'], settings.ollama['api_key'])
+    runner = select_model_mode(client)
+
     # Select question type
     base_prompt = select_question_type(settings)
 
+    # Select streaming mode
     stream_input = input("Do you want to run in streaming mode? (Y/n): ").strip().lower()
     stream = (stream_input == '' or stream_input == 'y')
-    run_folder = create_run_folder(settings) if not stream else None
 
-    client = OpenAIClient(settings.ollama['base_url'], settings.ollama['api_key'])
-    runner = ChatRunner(client)
+    #Create run folder if not streaming
+    run_folder = create_run_folder(settings) if not stream else None
 
     questions = get_questions_from_folder(folder, settings)
     models = get_models(settings)

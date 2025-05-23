@@ -57,4 +57,15 @@ class ChatRunner:
         else:
             print(response['message']['content'])
 
+class GenerateRunner:
+    def __init__(self, client):
+        self.client = client
+
+    def run(self, model, prompt):
+        try:
+            response = ollama.generate(model=model, prompt=prompt)
+            print(response['response'])
+        except ollama.ResponseError as e:
+            print('\033[91mError:', e.error, '\033[0m')
+
             
