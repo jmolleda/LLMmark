@@ -2,8 +2,9 @@ import os
 import re
 import json
 import requests
+from ollama_client import OllamaClient
 from settings import Settings
-from ollama_client import OpenAIClient, ChatRunner, GenerateRunner
+
 
 def open_dataset_folder(settings):
     """Open the folder containing the question dataset."""
@@ -14,12 +15,9 @@ def open_dataset_folder(settings):
     print(f"Question dataset folder: \033[92m{folder}\033[0m")
     return folder
 
-def get_models(settings):
-    """Return a list of (display_name, model_id) tuples from config."""
-    return [
-        (m['display_name'], m['model_id'])
-        for m in getattr(settings, 'models', [])
-    ]
+def get_models(models):
+    """Return a list of (display_name, model_id) tuples"""
+    return [(model['display_name'], model['model_id']) for model in models]
 
 def get_questions_from_folder(folder, settings):
     """Read all question files from the given folder."""
@@ -50,14 +48,15 @@ def create_run_folder(settings):
     print(f"Created run experiment folder: {run_folder}")
     return run_folder
 
-def get_llm_response(runner, model, prompt, stream):
-    """Get the LLM response, streaming or not."""
-    if stream:
-        for chunk in runner.client.chat(model=model, messages=[{"role": "user", "content": prompt}], stream=True):
-            print(f"\033[93m{chunk['message']['content']}\033[0m", end='', flush=True)
-        return None
-    response = runner.client.chat(model=model, messages=[{"role": "user", "content": prompt}], stream=False)
-    return response['message']['content']
+def get_llm_response(settings, client, model, prompt):
+    if settings.model_mode == 'chat':
+        response = client.chat(model=model, messages=[{"role": "user", "content": prompt}])
+        return response['message']['content']
+    if settings.model_mode == 'generate':
+        response = client.generate(model=model, prompt=prompt)
+        return response['response']
+    return None
+    
     
 def is_model_installed(model_name: str, ollama_base_url) -> bool:
     try:
@@ -82,9 +81,8 @@ def pull_model(model_name: str, ollama_base_url) -> None:
     except requests.exceptions.RequestException as e:
         print(f"Error pulling model: {e}")    
 
-def select_model(settings):
+def select_model(models, host):
     """Prompt the user to select a model from config, or all models. If not installed, offer to pull it."""
-    models = get_models(settings)
     print("Available Ollama models:")
     for idx, (name, _) in enumerate(models, 1):
         print(f"{idx}. {name}")
@@ -99,13 +97,13 @@ def select_model(settings):
         selected_model = models[int(choice) - 1][1]
     print(f"Selected model: \033[92m{selected_model}\033[0m")
 
-    if not is_model_installed(selected_model, settings.ollama['base_url']):
+    if not is_model_installed(selected_model, host):
         print(f"{selected_model} is not available in Ollama.")
         confirm = input(f"Do you want to pull '{selected_model}'? (Y/n): ").strip().lower()
         if confirm == '' or confirm == 'y':
-            pull_model(selected_model, settings.ollama['base_url'])
+            pull_model(selected_model, host)
             print(f"Pulling {selected_model}...")
-            if is_model_installed(selected_model, settings.ollama['base_url']):
+            if is_model_installed(selected_model, host):
                 print(f"{selected_model} successfully installed.")
             else:
                 print(f"Failed to install {selected_model}.")
@@ -113,18 +111,6 @@ def select_model(settings):
             print("Installation cancelled.")      
 
     return selected_model, False
-
-def select_model_mode(settings, client):
-    """Select the model mode (chat or generate) and return the appropriate runner."""
-    print("Model mode selected: ", end="")
-    if settings.model_mode == 'chat':
-        print("\033[92mchat\033[0m")
-        return ChatRunner(client)
-    if settings.model_mode == 'generate':
-        print("\033[92mgenerate\033[0m")
-        return GenerateRunner(client)
-    
-    return None
 
 def select_question_type(settings):
     """Select open-answer or multiple-choice questions and return the base prompt."""
@@ -139,12 +125,10 @@ def select_question_type(settings):
     
     return None
 
-def run_questions_for_model(model_display_name, model_id, questions, settings, runner, stream, run_folder, base_prompt):
+def run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt):
     print(f"\n\033[92m=== Running questions for model: {model_display_name} ({model_id}) ===\033[0m")
-    model_run_folder = None
-    if not stream and run_folder:
-        model_run_folder = os.path.join(run_folder, model_id)
-        os.makedirs(model_run_folder, exist_ok=True)
+    model_run_folder = os.path.join(run_folder, model_id)
+    os.makedirs(model_run_folder, exist_ok=True)
 
     for idx, (filename, question) in enumerate(questions, 1):
         prompt = base_prompt + question
@@ -152,37 +136,36 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, r
         outputs = []
         for run_idx in range(settings.num_runs_per_question):
             print(f"\033[93mExperiment: {os.path.basename(run_folder) if run_folder else 'N/A'} | Model: {model_display_name} | Iteration: {run_idx + 1} | Answer: \033[0m")
-            answer = get_llm_response(runner, model_id, prompt, stream)
-            if not stream:
-                answer_no_newlines = answer.replace('\n', '') if answer else ''
-                answer_no_think = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
-                # Keep only text matching the pattern [*], where * is a single character
-                matches = re.findall(r'\[[^\]]\]', answer_no_think)
-                answer_clean = ''.join(matches)                
-                print(f"\033[93m{answer_clean}\033[0m")
-                outputs.append({
-                    "question": question,
-                    "answer": answer_clean,
-                    "raw_answer": answer_no_think,
-                })
+            answer = get_llm_response(settings, client, model_id, prompt)
+            answer_no_newlines = answer.replace('\n', '') if answer else ''
+            answer_no_think = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
+            # Keep only text matching the pattern [*], where * is a single character
+            matches = re.findall(r'\[[^\]]\]', answer_no_think)
+            answer_clean = ''.join(matches)                
+            print(f"\033[93m{answer_clean}\033[0m")
+            outputs.append({
+                "question": question,
+                "answer": answer_clean,
+                "raw_answer": answer_no_think,
+            })
 
-        if not stream:
-            out_file = os.path.join(model_run_folder, f"{settings.files['question_file_name']}{idx}.json")
-            print(f"Writing to file: {out_file}")
-            with open(out_file, "w") as f:
-                json.dump(outputs, f, indent=2)
+        out_file = os.path.join(model_run_folder, f"{settings.files['question_file_name']}{idx}.json")
+        print(f"Writing to file: {out_file}")
+        with open(out_file, "w") as f:
+            json.dump(outputs, f, indent=2)
 
 def main():
     settings = Settings()
+
+    # Initialize Ollama client
+    client = OllamaClient(settings.ollama['host'])
     
     # Access question dataset folder
     folder = open_dataset_folder(settings)
 
     # Select model(s) to run
-    selected, run_all_models = select_model(settings)
-    client = OpenAIClient(settings.ollama['base_url'], settings.ollama['api_key'])
-    runner = select_model_mode(settings, client)
-    models = get_models(settings)
+    models = get_models(settings.models)
+    selected, run_all_models = select_model(models, settings.ollama['host'])    
     if run_all_models:
         selected_models = [(name, mid) for name, mid in models if mid in set(selected)]
     else:
@@ -191,19 +174,15 @@ def main():
     # Select question type
     base_prompt = select_question_type(settings)
 
-    # Select streaming mode
-    stream_input = input("Do you want to run in streaming mode? (Y/n): ").strip().lower()
-    stream = (stream_input == '' or stream_input == 'y')
-
-    # Create run folder if not streaming
-    run_folder = create_run_folder(settings) if not stream else None
+    # Create run folder
+    run_folder = create_run_folder(settings)
 
     # Read questions from the dataset folder
     questions = get_questions_from_folder(folder, settings)
 
     # Run questions for each selected model
     for model_display_name, model_id in selected_models:
-        run_questions_for_model(model_display_name, model_id, questions, settings, runner, stream, run_folder, base_prompt)
+        run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt)
 
 if __name__ == "__main__":
     main()
