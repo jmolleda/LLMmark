@@ -11,7 +11,7 @@ def open_dataset_folder(settings):
     if not os.path.exists(folder):
         print(f"Folder {folder} does not exist.")
         exit(1)
-    print(f"Question dataset folder: {folder}")    
+    print(f"Question dataset folder: \033[92m{folder}\033[0m")
     return folder
 
 def get_models(settings):
@@ -39,7 +39,7 @@ def get_questions_from_folder(folder, settings):
 
 def create_run_folder(settings):
     """Create a new run folder for experiment outputs."""
-    base_folder = settings.paths['base_experiments_folder']
+    base_folder = settings.folders['base_experiments_folder']
     os.makedirs(base_folder, exist_ok=True)
     prefix = settings.folders['experiment_folder_name']
     existing = [d for d in os.listdir(base_folder) if d.startswith(prefix) and os.path.isdir(os.path.join(base_folder, d))]
@@ -97,7 +97,7 @@ def select_model(settings):
         selected_model = models[0][1]
     else:
         selected_model = models[int(choice) - 1][1]
-    print(f"Selected model: {selected_model}")
+    print(f"Selected model: \033[92m{selected_model}\033[0m")
 
     if not is_model_installed(selected_model, settings.ollama['base_url']):
         print(f"{selected_model} is not available in Ollama.")
@@ -114,37 +114,30 @@ def select_model(settings):
 
     return selected_model, False
 
-def select_model_mode(client):
-    """Prompt the user to select Chat or Generate mode and return the appropriate runner."""
-    print("Select model mode:")
-    print("1. Chat")
-    print("2. Generate")    
-    while True:
-        qtype = input("Enter 1 or 2 (default [1]): ").strip()
-        if qtype in ('', '1', '2'):
-            break
-        print("Invalid input. Please enter 1 or 2.")
-    if qtype == '2':
-        print("Generate mode selected.")
-        return GenerateRunner(client)
-    else:
-        print("Chat mode selected.")
+def select_model_mode(settings, client):
+    """Select the model mode (chat or generate) and return the appropriate runner."""
+    print("Model mode selected: ", end="")
+    if settings.model_mode == 'chat':
+        print("\033[92mchat\033[0m")
         return ChatRunner(client)
+    if settings.model_mode == 'generate':
+        print("\033[92mgenerate\033[0m")
+        return GenerateRunner(client)
+    
+    return None
 
 def select_question_type(settings):
-    """Prompt the user to select open-answer or multiple-choice questions and return the base prompt."""
-    print("Select question type:")
-    print("1. Open-answer questions")
-    print("2. Multiple-choice questions")
-    while True:
-        qtype = input("Enter 1 or 2 (default [1]): ").strip()
-        if qtype in ('', '1', '2'):
-            break
-        print("Invalid input. Please enter 1 or 2.")
-    if qtype == '2':
+    """Select open-answer or multiple-choice questions and return the base prompt."""
+    print("Question type selected: ", end="")
+    if settings.question_type == 'multiple_choice':
+        print("\033[92mmultiple choice\033[0m")
         return settings.prompts['multiple_choice_questions']
-    else:
+    
+    if settings.question_type == 'open_answer':
+        print("\033[92mopen answer\033[0m")
         return settings.prompts['open_answer_questions']
+    
+    return None
 
 def run_questions_for_model(model_display_name, model_id, questions, settings, runner, stream, run_folder, base_prompt):
     print(f"\n\033[92m=== Running questions for model: {model_display_name} ({model_id}) ===\033[0m")
@@ -188,7 +181,7 @@ def main():
     # Select model(s) to run
     selected, run_all_models = select_model(settings)
     client = OpenAIClient(settings.ollama['base_url'], settings.ollama['api_key'])
-    runner = select_model_mode(client)
+    runner = select_model_mode(settings, client)
     models = get_models(settings)
     if run_all_models:
         selected_models = [(name, mid) for name, mid in models if mid in set(selected)]
