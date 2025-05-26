@@ -1,6 +1,5 @@
 ollama:
-  base_url: "http://localhost:11434/"
-  api_key: "ollama"
+  host: "http://localhost:11434/"
 
 models:
   - display_name: "DeepSeek R1:1.5b"
@@ -32,7 +31,7 @@ question_type: "multiple_choice"
 # Valid model modes
 # - chat
 # - generate
-model_mode: "generate"
+model_mode: "chat"
 
 prompts:
   open_answer_questions: |

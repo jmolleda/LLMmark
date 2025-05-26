@@ -2,11 +2,9 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import os
 from pathlib import Path
 
 from _pytest.monkeypatch import MonkeyPatch
-from ollama_client import OpenAIClient, ChatRunner
 from settings import Settings
 from main import (
     get_models,
@@ -16,7 +14,7 @@ from main import (
 
 def test_get_models():
     settings = Settings()
-    models = get_models(settings)
+    models = get_models(settings.models)
     assert isinstance(models, list)
     for name, model_id in models:
         assert isinstance(name, str)
@@ -36,9 +34,9 @@ def test_get_questions_from_folder(tmp_path: Path):
     assert questions[0][1] == "What is 2+2?"
     assert questions[1][1] == "What is the capital of France?"
 
-def test_create_run_folder(tmp_path: Path, monkeypatch: MonkeyPatch):
+def test_create_run_folder(tmp_path: Path):
     settings = Settings()
-    settings.paths['base_experiments_folder'] = str(tmp_path)
+    settings.folders['base_experiments_folder'] = str(tmp_path)
     settings.folders['experiment_folder_name'] = 'run_'
     run_folder = create_run_folder(settings)
     assert os.path.exists(run_folder)
