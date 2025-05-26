@@ -141,6 +141,8 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
         prompt = base_prompt + question
         print(f"\n{prompt}")
         outputs = []
+        correct_answers = 0
+        total_response_time = 0
         for run_idx in range(settings.num_runs_per_question):
             # Display experiment name, model name, question number, and iteration
             exp_name = os.path.basename(run_folder) if run_folder else 'N/A'
@@ -151,15 +153,17 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
             start_time = time.time()
             answer = get_llm_response(settings, client, model_id, prompt)
             response_time = round(time.time() - start_time, 3)
+            total_response_time += response_time
             
             answer_no_newlines = answer.replace('\n', '') if answer else ''
             answer_no_think = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
             # Keep only text matching the pattern [*], where * is a single character
             matches = re.findall(r'\[[^\]]\]', answer_no_think)
             answer_clean = ''.join(matches)                
-
+            
             if answer_clean == correct_answer:
                 print(f"\033[92m{answer_clean}\033[0m")  # Green
+                correct_answers += 1
             else:
                 print(f"\033[91m{answer_clean}\033[0m")  # Red
 
@@ -171,6 +175,16 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
                 "model": model_display_name,
                 "response_time (s.)": response_time,
             })
+
+        # Calculate statistics
+        accuracy = round(correct_answers / settings.num_runs_per_question, 2)
+        avg_response_time = round(total_response_time / settings.num_runs_per_question, 3)
+        # Insert statistics at the beginning of the outputs list
+        outputs.insert(0, {
+            "Num. correct answers": correct_answers,
+            "Accuracy": accuracy,
+            "Avg_response_time (s.)": avg_response_time,
+        })
 
         out_file = os.path.join(model_run_folder, f"{settings.files['question_file_name']}{idx}.json")
         print(f"Writing to file: {out_file}")
