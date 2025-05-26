@@ -1,10 +1,11 @@
 import os
 import re
 import json
+import time
 import requests
 from ollama_client import OllamaClient
 from settings import Settings
-import time
+from statistics import Statistics
 
 
 def open_dataset_folder(settings):
@@ -126,7 +127,7 @@ def select_question_type(settings):
     
     return None
 
-def run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt):
+def run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt, statistics):
     print(f"\n\033[92m=== Running questions for model: {model_display_name} ({model_id}) ===\033[0m")
     model_run_folder = os.path.join(run_folder, model_id)
     os.makedirs(model_run_folder, exist_ok=True)
@@ -162,10 +163,12 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
             answer_clean = ''.join(matches)                
             
             if answer_clean == correct_answer:
-                print(f"\033[92m{answer_clean}\033[0m")  # Green
+                print(f"\033[92m{answer_clean}\033[0m")  # Green                
                 correct_answers += 1
+                statistics.record_experiment(True, response_time)
             else:
                 print(f"\033[91m{answer_clean}\033[0m")  # Red
+                statistics.record_experiment(False, response_time)
 
             outputs.append({
                 "question": question,
@@ -193,6 +196,7 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
 
 def main():
     settings = Settings()
+    statistics = Statistics()
 
     # Initialize Ollama client
     client = OllamaClient(settings.ollama['host'])
@@ -219,7 +223,10 @@ def main():
 
     # Run questions for each selected model
     for model_display_name, model_id in selected_models:
-        run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt)
+        run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt, statistics)
+
+    statistics.print_statistics()
+    print("\n=== All experiments completed ===")
 
 if __name__ == "__main__":
     main()

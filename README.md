@@ -11,7 +11,7 @@ See `examples/example.py` for a minimal example.
 question.txt
 
 ```
-What is the representation of the number 61 in natural binary?  
+What is the representation of the number 61 in natural binary?
 [a] 00111110000  
 [b] 00111101  
 [c] 0011110110  
