@@ -1,0 +1,9 @@
+What is the representation of the number 61 in hexadecimal?
+[a] 63h
+[b] 3Fh
+[c] 3Eh
+[d] 3Dh 
+[e] 174h
+[f] 61h
+
+<d>

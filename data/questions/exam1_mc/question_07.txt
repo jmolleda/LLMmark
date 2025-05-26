@@ -1,0 +1,9 @@
+What is the representation of the number 0.101101b in decimal?
+[a] 703.125
+[b] 70.3125
+[c] 7.03125
+[d] 3.524
+[e] 0.703125
+[f] 0.3524
+
+<e>

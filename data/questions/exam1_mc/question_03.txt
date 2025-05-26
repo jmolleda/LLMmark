@@ -1,0 +1,9 @@
+What is the representation of the number 111100b in decimal?
+[a] 70
+[b] 60
+[c] 56
+[d] 61h
+[e] 17
+[f] 111100
+
+<b>

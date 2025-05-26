@@ -1,0 +1,9 @@
+What is the representation of the number 11111010001b in hexadecimal?
+[a] 971Fh
+[b] 433
+[c] 11111010001h
+[d] 654
+[e] 41h
+[f] 7D1h 
+
+<f>

@@ -1,0 +1,9 @@
+What is the representation of the number 4CEh in binary? 
+[a] 001010110011b
+[b] 1101001b
+[c] 0101010015b
+[d] 4CEb
+[e] 10011001110b
+[f] 0111000111b
+
+<e>

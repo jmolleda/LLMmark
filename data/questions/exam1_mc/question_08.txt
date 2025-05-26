@@ -1,0 +1,9 @@
+What is the representation of the number 14,375 in binary? 
+[a] 10101101.101010b
+[b] 1110.011b 
+[c] 14.375b
+[d] 10.1001011b
+[e] 1110.101b
+[f] 1101.011b
+
+<b>
