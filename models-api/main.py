@@ -196,7 +196,6 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
 
 def main():
     settings = Settings()
-    statistics = Statistics()
 
     # Initialize Ollama client
     client = OllamaClient(settings.ollama['host'])
@@ -223,9 +222,11 @@ def main():
 
     # Run questions for each selected model
     for model_display_name, model_id in selected_models:
+        statistics = Statistics()
         run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt, statistics)
+        statistics.print_statistics()
+        statistics.save_statistics(os.path.join(run_folder, model_id, settings.files['stats_file_name']))
 
-    statistics.print_statistics()
     print("\n=== All experiments completed ===")
 
 if __name__ == "__main__":

@@ -53,5 +53,6 @@ folders:
 files:
   question_file_name: "question_"
   question_file_extension: ".txt"
+  stats_file_name: "stats.json"
 
 num_runs_per_question: 10
