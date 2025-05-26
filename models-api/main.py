@@ -4,6 +4,7 @@ import json
 import requests
 from ollama_client import OllamaClient
 from settings import Settings
+import time
 
 
 def open_dataset_folder(settings):
@@ -20,7 +21,7 @@ def get_models(models):
     return [(model['display_name'], model['model_id']) for model in models]
 
 def get_questions_from_folder(folder, settings):
-    """Read all question files from the given folder."""
+    """Read all question files from the given folder"""
     questions = []
     prefix = settings.files['question_file_name']
     ext = settings.files['question_file_extension']
@@ -131,22 +132,44 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
     os.makedirs(model_run_folder, exist_ok=True)
 
     for idx, (filename, question) in enumerate(questions, 1):
+        #Get the correct answer from the question, and remove it from the question text
+        match = re.search(r'<(.*?)>', question)
+        correct_answer = "[" + match.group(1)  + "]" if match else ''
+        question = re.sub(r'<.*?>', '', question)
+        question = question[:-1]
+
         prompt = base_prompt + question
         print(f"\n{prompt}")
         outputs = []
         for run_idx in range(settings.num_runs_per_question):
-            print(f"\033[93mExperiment: {os.path.basename(run_folder) if run_folder else 'N/A'} | Model: {model_display_name} | Iteration: {run_idx + 1} | Answer: \033[0m")
+            # Display experiment name, model name, question number, and iteration
+            exp_name = os.path.basename(run_folder) if run_folder else 'N/A'
+            q_str = f"{idx:2}"  # 2-character width for question number
+            iter_str = f"{run_idx + 1:2}"  # 2-character width for iteration
+            print(f"Experiment: {exp_name} | Model: {model_display_name} | Question: {q_str} | Iteration: {iter_str} | Answer: ", end="")
+
+            start_time = time.time()
             answer = get_llm_response(settings, client, model_id, prompt)
+            response_time = round(time.time() - start_time, 3)
+            
             answer_no_newlines = answer.replace('\n', '') if answer else ''
             answer_no_think = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
             # Keep only text matching the pattern [*], where * is a single character
             matches = re.findall(r'\[[^\]]\]', answer_no_think)
             answer_clean = ''.join(matches)                
-            print(f"\033[93m{answer_clean}\033[0m")
+
+            if answer_clean == correct_answer:
+                print(f"\033[92m{answer_clean}\033[0m")  # Green
+            else:
+                print(f"\033[91m{answer_clean}\033[0m")  # Red
+
             outputs.append({
                 "question": question,
                 "answer": answer_clean,
+                "correct_answer": correct_answer,
                 "raw_answer": answer_no_think,
+                "model": model_display_name,
+                "response_time (s.)": response_time,
             })
 
         out_file = os.path.join(model_run_folder, f"{settings.files['question_file_name']}{idx}.json")
