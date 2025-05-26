@@ -6,11 +6,11 @@ Ollama local models are supported.
 
 See `examples/example.py` for a minimal example.
 
-## Multiple-choice question
+## Multiple-choice question file
 
-```
 question.txt
 
+```
 What is the representation of the number 61 in natural binary?  
 [a] 00111110000  
 [b] 00111101  
@@ -22,12 +22,11 @@ What is the representation of the number 61 in natural binary?
 <b> 
 ```
 
-## Output
+## Output file
 
-```
 output.json
 
-```json
+```
 [
     {
         "Num. correct answers": 0,
@@ -43,5 +42,4 @@ output.json
         "response_time (s.)": 0.091
     }
 ]
-```
 ```
