@@ -7,14 +7,14 @@ from pathlib import Path
 from _pytest.monkeypatch import MonkeyPatch
 from settings import Settings
 from main import (
-    get_models,
+    get_local_models,
     get_questions_from_folder,
     create_run_folder
 )
 
 def test_get_models():
     settings = Settings()
-    models = get_models(settings.models)
+    models = get_local_models(settings.models)
     assert isinstance(models, list)
     for name, model_id in models:
         assert isinstance(name, str)

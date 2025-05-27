@@ -30,7 +30,7 @@ class Statistics:
         print(f"  Correct: \033[92m{self.num_correct}\033[0m")
         print(f"  Incorrect: \033[91m{self.num_incorrect}\033[0m")
         print(f"  Accuracy: {self.accuracy:.2f}")
-        print(f"  Average Response Time: {self.average_response_time:.2f}s")
+        print(f"  Average response time: {self.average_response_time:.2f}s")
 
     def save_statistics(self, filename):
         data = {
@@ -38,8 +38,8 @@ class Statistics:
             "num_correct": self.num_correct,
             "num_incorrect": self.num_incorrect,
             "accuracy": round(self.accuracy, 2),
-            "average_response_time": round(self.average_response_time, 2),
-            "total_response_time (s.)": round(self.total_response_time, 3),
+            "average_response_time (s)": round(self.average_response_time, 2),
+            "total_response_time (s)": round(self.total_response_time, 3),
         }
         with open(filename, "w") as f:
             json.dump(data, f, indent=2)

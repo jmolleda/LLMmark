@@ -1,7 +1,7 @@
 ollama:
   host: "http://localhost:11434/"
 
-models:
+ollama_models:
   - display_name: "DeepSeek R1:1.5b"
     model_id: "deepseek-r1:1.5b"      # 1.1 GB
   - display_name: "Deepseek-r1"
@@ -10,7 +10,7 @@ models:
     model_id: "gemma3:1b"             # 815 MB
   - display_name: "Llama3.2:1b"
     model_id: "llama3.2:1b"           # 1.3 GB
-    display_name: "Mistrallite:7b"
+  - display_name: "Mistrallite:7b"
     model_id: "mistrallite:7b"        # 4.1 GB
   - display_name: "Moondream 2"
     model_id: "moondream:1.8b"        # 1.7 GB
@@ -22,6 +22,20 @@ models:
     model_id: "tinyllama:1.1b"        # 638 MB
   - display_name: "Qwen3:0.6b"
     model_id: "qwen3:0.6b"            # 523 MB
+
+openai_models:
+  - display_name: "GPT-3.5 Turbo"
+    model_id: "gpt-3.5-turbo"
+    base_url: "https://api.openai.com/v1/"
+    api_key: "OPENAI_API_KEY"
+  - display_name: "GPT-4.1"
+    model_id: "gpt-4.1"
+    base_url: "https://api.openai.com/v1/"
+    api_key: "OPENAI_API_KEY"
+  - display_name: "Gemini 2.0 Flash"
+    model_id: "gemini-2.0-flash"
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+    api_key: "GEMINI_API_KEY"
 
 # Valid question_types:
 # - open_answer
@@ -55,4 +69,4 @@ files:
   question_file_extension: ".txt"
   stats_file_name: "stats.json"
 
-num_runs_per_question: 10
+num_runs_per_question: 1
