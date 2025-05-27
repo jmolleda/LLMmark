@@ -13,13 +13,14 @@ source ~/.bashrc
 ## Usage Example
 
 See `examples/ollama_client.py` for a minimal example using Ollama local models.
+
 See `examples/openai_client.py` for a minimal example using the OpenAI API to access online models.
 
 ## Multiple-choice question file
 
 question.txt
 
-```json
+```txt
 What is the representation of the number 61 in natural binary?
 [a] 00111110000  
 [b] 00111101  
