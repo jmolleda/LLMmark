@@ -38,8 +38,8 @@ class Statistics:
             "num_correct": self.num_correct,
             "num_incorrect": self.num_incorrect,
             "accuracy": round(self.accuracy, 4),
-            "average_response_time (s)": round(self.average_response_time, 2),
-            "total_response_time (s)": round(self.total_response_time, 2),
+            "average_response_time (s)": round(self.average_response_time, 3),
+            "total_response_time (s)": round(self.total_response_time, 3),
         }
         with open(filename, "w") as f:
             json.dump(data, f, indent=2)
