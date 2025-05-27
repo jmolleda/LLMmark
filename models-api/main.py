@@ -86,6 +86,8 @@ def pull_model(model_name: str, ollama_base_url) -> None:
         print(f"Error pulling model: {e}")    
 
 def select_local_model(models, host):
+    client = OllamaClient(host)
+    
     """Prompt the user to select a model from config, or all models. If not installed, offer to pull it."""
     print("Available Ollama models:")
     for idx, (name, _) in enumerate(models, 1):
@@ -93,7 +95,7 @@ def select_local_model(models, host):
 
     choice = input("Enter model number or 'A' to run all models (default [1]): ").strip().lower()
     if choice == 'a':
-        return [m[1] for m in models], True
+        return [m[1] for m in models], True, client
 
     if not choice or not choice.isdigit() or int(choice) < 1 or int(choice) > len(models):
         selected_model = models[0][1]
@@ -112,9 +114,7 @@ def select_local_model(models, host):
             else:
                 print(f"Failed to install {selected_model}.")
         else:
-            print("Installation cancelled.")      
-
-    client = OllamaClient(host)
+            print("Installation cancelled.")    
 
     return selected_model, False, client
 
