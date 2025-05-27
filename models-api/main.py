@@ -4,6 +4,7 @@ import json
 import time
 import requests
 from ollama_client import OllamaClient
+from openai_client import OpenAIClient
 from settings import Settings
 from statistics import Statistics
 
@@ -17,9 +18,13 @@ def open_dataset_folder(settings):
     print(f"Question dataset folder: \033[92m{folder}\033[0m")
     return folder
 
-def get_models(models):
+def get_local_models(models):
     """Return a list of (display_name, model_id) tuples"""
     return [(model['display_name'], model['model_id']) for model in models]
+
+def get_online_models(models):
+    """Return a list of (display_name, model_id, base_url, api_key) tuples"""
+    return [(model['display_name'], model['model_id'], model['base_url'], model['api_key'], model['max_requests_per_minute']) for model in models]
 
 def get_questions_from_folder(folder, settings):
     """Read all question files from the given folder"""
@@ -52,13 +57,10 @@ def create_run_folder(settings):
 
 def get_llm_response(settings, client, model, prompt):
     if settings.model_mode == 'chat':
-        response = client.chat(model=model, messages=[{"role": "user", "content": prompt}])
-        return response['message']['content']
+        return client.chat(model=model, messages=[{"role": "user", "content": prompt}])
     if settings.model_mode == 'generate':
-        response = client.generate(model=model, prompt=prompt)
-        return response['response']
-    return None
-    
+        return client.generate(model=model, prompt=prompt)
+    return ""
     
 def is_model_installed(model_name: str, ollama_base_url) -> bool:
     try:
@@ -83,7 +85,7 @@ def pull_model(model_name: str, ollama_base_url) -> None:
     except requests.exceptions.RequestException as e:
         print(f"Error pulling model: {e}")    
 
-def select_model(models, host):
+def select_local_model(models, host):
     """Prompt the user to select a model from config, or all models. If not installed, offer to pull it."""
     print("Available Ollama models:")
     for idx, (name, _) in enumerate(models, 1):
@@ -112,7 +114,40 @@ def select_model(models, host):
         else:
             print("Installation cancelled.")      
 
-    return selected_model, False
+    client = OllamaClient(host)
+
+    return selected_model, False, client
+
+def select_online_model(models):
+    """Prompt the user to select an online model or all models."""
+    print("Available online models:")
+    for idx, (name, _, _, _, _) in enumerate(models, 1):
+        print(f"{idx}. {name}")
+
+    choice = input("Enter model number (default [1]): ").strip().lower()
+
+    if not choice or not choice.isdigit() or int(choice) < 1 or int(choice) > len(models):
+        idx = 0
+    else:
+        idx = int(choice) - 1
+
+    selected_model = models[idx][1]
+    base_url = models[idx][2]
+    api_key = os.environ.get(models[idx][3])
+    max_requests_per_minute = models[idx][4]
+
+    print(f"Selected model: \033[92m{selected_model}\033[0m")
+    print(f"Using API key: \033[92m{api_key}\033[0m")
+    print(f"Using base URL: \033[92m{base_url}\033[0m")
+    print(f"Max. requests per minute: \033[92m{max_requests_per_minute}\033[0m")
+
+    client = OpenAIClient(
+        api_key=api_key,
+        base_url=base_url,
+        max_requests_per_minute=max_requests_per_minute
+    )
+
+    return selected_model, False, client
 
 def select_question_type(settings):
     """Select open-answer or multiple-choice questions and return the base prompt."""
@@ -176,7 +211,7 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
                 "correct_answer": correct_answer,
                 "raw_answer": answer_no_think,
                 "model": model_display_name,
-                "response_time (s.)": response_time,
+                "response_time (s)": response_time,
             })
 
         # Calculate statistics
@@ -184,9 +219,9 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
         avg_response_time = round(total_response_time / settings.num_runs_per_question, 3)
         # Insert statistics at the beginning of the outputs list
         outputs.insert(0, {
-            "Num. correct answers": correct_answers,
-            "Accuracy": accuracy,
-            "Avg_response_time (s.)": avg_response_time,
+            "num_correct": correct_answers,
+            "accuracy": accuracy,
+            "averaga_response_time (s)": avg_response_time,
         })
 
         out_file = os.path.join(model_run_folder, f"{settings.files['question_file_name']}{idx}.json")
@@ -197,15 +232,24 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
 def main():
     settings = Settings()
 
-    # Initialize Ollama client
-    client = OllamaClient(settings.ollama['host'])
+    # Initialize client later: Ollama or OpenAI
+    client = None
     
     # Access question dataset folder
     folder = open_dataset_folder(settings)
 
-    # Select model(s) to run
-    models = get_models(settings.models)
-    selected, run_all_models = select_model(models, settings.ollama['host'])    
+    # Ask user to choose between local or online models
+    model_source = input("Do you want to run [l]ocal models or (o)nline models?: ").strip().upper()
+    if model_source not in ['L', 'O', ''] or model_source == '':
+        model_source = 'L'
+    if model_source == 'L':
+        models = get_local_models(settings.ollama_models)
+        selected, run_all_models, client = select_local_model(models, settings.ollama['host'])        
+    else:
+        models = get_online_models(settings.openai_models)
+        selected, run_all_models, client = select_online_model(models)
+        models = [(name, mid) for name, mid, _, _, _ in models] # Remove base_url and api_key from models list
+
     if run_all_models:
         selected_models = [(name, mid) for name, mid in models if mid in set(selected)]
     else:
