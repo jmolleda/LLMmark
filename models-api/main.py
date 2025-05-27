@@ -24,7 +24,7 @@ def get_local_models(models):
 
 def get_online_models(models):
     """Return a list of (display_name, model_id, base_url, api_key) tuples"""
-    return [(model['display_name'], model['model_id'], model['base_url'], model['api_key']) for model in models]
+    return [(model['display_name'], model['model_id'], model['base_url'], model['api_key'], model['max_requests_per_minute']) for model in models]
 
 def get_questions_from_folder(folder, settings):
     """Read all question files from the given folder"""
@@ -121,7 +121,7 @@ def select_local_model(models, host):
 def select_online_model(models):
     """Prompt the user to select an online model or all models."""
     print("Available online models:")
-    for idx, (name, _, _, _) in enumerate(models, 1):
+    for idx, (name, _, _, _, _) in enumerate(models, 1):
         print(f"{idx}. {name}")
 
     choice = input("Enter model number (default [1]): ").strip().lower()
@@ -134,14 +134,17 @@ def select_online_model(models):
     selected_model = models[idx][1]
     base_url = models[idx][2]
     api_key = os.environ.get(models[idx][3])
+    max_requests_per_minute = models[idx][4]
 
     print(f"Selected model: \033[92m{selected_model}\033[0m")
     print(f"Using API key: \033[92m{api_key}\033[0m")
     print(f"Using base URL: \033[92m{base_url}\033[0m")
+    print(f"Max. requests per minute: \033[92m{max_requests_per_minute}\033[0m")
 
     client = OpenAIClient(
         api_key=api_key,
-        base_url=base_url
+        base_url=base_url,
+        max_requests_per_minute=max_requests_per_minute
     )
 
     return selected_model, False, client
@@ -245,7 +248,7 @@ def main():
     else:
         models = get_online_models(settings.openai_models)
         selected, run_all_models, client = select_online_model(models)
-        models = [(name, mid) for name, mid, _, _ in models] # Remove base_url and api_key from models list
+        models = [(name, mid) for name, mid, _, _, _ in models] # Remove base_url and api_key from models list
 
     if run_all_models:
         selected_models = [(name, mid) for name, mid in models if mid in set(selected)]

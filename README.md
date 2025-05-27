@@ -2,6 +2,14 @@
 Ollamark is a simple tool for solving examns interacting with large language models (LLMs).
 Ollama local models are supported.
 
+## API keys
+This project uses API keys from environment variables.
+
+```bash
+export GEMINI_API_KEY=<YOUR_API_KEY_HERE>
+source ~/.bashrc
+```
+
 ## Usage Example
 
 See `examples/ollama_client.py` for a minimal example using Ollama local models.
@@ -11,7 +19,7 @@ See `examples/openai_client.py` for a minimal example using the OpenAI API to ac
 
 question.txt
 
-```
+```json
 What is the representation of the number 61 in natural binary?
 [a] 00111110000  
 [b] 00111101  
@@ -27,7 +35,7 @@ What is the representation of the number 61 in natural binary?
 
 run_1/gemini-2.0-flash/stats.json
 
-```
+```json
 {
     "num_experiments": 10,
     "num_correct": 8,
@@ -40,7 +48,7 @@ run_1/gemini-2.0-flash/stats.json
 
 run_1/gemini-2.0-flash/question.json
 
-```
+```json
 [
     {
         "num_correct": 0,

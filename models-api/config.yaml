@@ -28,14 +28,17 @@ openai_models:
     model_id: "gpt-3.5-turbo"
     base_url: "https://api.openai.com/v1/"
     api_key: "OPENAI_API_KEY"
+    max_requests_per_minute: 0
   - display_name: "GPT-4.1"
     model_id: "gpt-4.1"
     base_url: "https://api.openai.com/v1/"
     api_key: "OPENAI_API_KEY"
+    max_requests_per_minute: 0
   - display_name: "Gemini 2.0 Flash"
     model_id: "gemini-2.0-flash"
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
     api_key: "GEMINI_API_KEY"
+    max_requests_per_minute: 15
 
 # Valid question_types:
 # - open_answer
@@ -69,4 +72,4 @@ files:
   question_file_extension: ".txt"
   stats_file_name: "stats.json"
 
-num_runs_per_question: 1
+num_runs_per_question: 10
