@@ -1,6 +1,9 @@
-# Ollamark
-Ollamark is a simple tool for solving examns interacting with large language models (LLMs).
-Ollama local models are supported.
+# LLMmark
+LLMmark is a simple tool for solving examns interacting with large language models (LLMs).
+
+Local models are supported using [Ollama](https://github.com/ollama/ollama).
+
+Online models are supported through the [OpenAI API Python library](https://github.com/openai/openai-python).
 
 ## API keys
 This project uses API keys from environment variables.
