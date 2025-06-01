@@ -32,7 +32,7 @@ class LLMJudge:
         - Una puntuación del 0.0 (muy mal) al 1.0 (perfecta)
 
         Responde en formato JSON así:
-        {{"grade": "0.76", "justificación": "..."}}"""
+        {{"grade": "0.0", "justificación": "..."}}"""
         return prompt
 
     def eval(self, pregunta, respuesta_esperada, respuesta_modelo):
