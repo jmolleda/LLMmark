@@ -3,10 +3,14 @@ import re
 import json
 import time
 import requests
-from ollama_client import OllamaClient
-from openai_client import OpenAIClient
 from settings import Settings
 from statistics import Statistics
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from clients.openai_client import OpenAIClient
+from clients.ollama_client import OllamaClient
 
 
 def open_dataset_folder(settings):
