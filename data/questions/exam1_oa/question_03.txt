@@ -1,0 +1,3 @@
+What is the representation of the number 111100b in decimal?
+
+<60>

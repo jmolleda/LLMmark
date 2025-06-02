@@ -1,0 +1,3 @@
+What is the representation of the number 4CEh in binary?
+
+<10011001110>
