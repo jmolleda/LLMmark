@@ -87,7 +87,7 @@ def pull_model(model_name: str, ollama_base_url) -> None:
 
 def select_local_model(models, host):
     client = OllamaClient(host)
-    
+
     """Prompt the user to select a model from config, or all models. If not installed, offer to pull it."""
     print("Available Ollama models:")
     for idx, (name, _) in enumerate(models, 1):
@@ -170,9 +170,16 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
     for idx, (filename, question) in enumerate(questions, 1):
         #Get the correct answer from the question, and remove it from the question text
         match = re.search(r'<(.*?)>', question)
-        correct_answer = "[" + match.group(1)  + "]" if match else ''
-        question = re.sub(r'<.*?>', '', question)
-        question = question[:-1]
+        if settings.question_type == 'multiple_choice':
+            # For multiple-choice questions, the correct answer is in brackets
+            correct_answer = "[" + match.group(1)  + "]"
+        elif settings.question_type == 'open_answer':
+            # For open-answer questions, the correct answer is the text inside the brackets
+            correct_answer = match.group(1)
+        # Remove the correct answer from the question text
+        if match:
+            question = re.sub(r'<.*?>', '', question)
+            question = question[:-1]
 
         prompt = base_prompt + question
         print(f"\n{prompt}")
@@ -193,11 +200,20 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
             
             answer_no_newlines = answer.replace('\n', '') if answer else ''
             answer_no_think = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
-            # Keep only text matching the pattern [*], where * is a single character
-            matches = re.findall(r'\[[^\]]\]', answer_no_think)
-            answer_clean = ''.join(matches)                
-            
-            if answer_clean == correct_answer:
+            if settings.question_type == 'multiple_choice':
+                # Keep only text matching the pattern [*], where * is a single character
+                matches = re.findall(r'\[[^\]]\]', answer_no_think)
+                answer_clean = ''.join(matches)                
+            elif settings.question_type == 'open_answer':
+                # For open-answer questions, keep the answer as is
+                answer_clean = answer_no_think.strip()
+                # If the correct answer is in the answer, extract it
+                if correct_answer.lower() in answer_clean.lower():
+                    start = answer_clean.lower().find(correct_answer.lower())
+                    end = start + len(correct_answer)
+                    answer_clean = answer_clean[start:end]
+
+            if answer_clean.strip().lower() == correct_answer.strip().lower():
                 print(f"\033[92m{answer_clean}\033[0m")  # Green                
                 correct_answers += 1
                 statistics.record_experiment(True, response_time)
