@@ -1,0 +1,3 @@
+What is the sum of the numbers 01000000b and 00010101b?
+
+<01010101>

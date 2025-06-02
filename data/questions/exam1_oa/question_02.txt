@@ -1,0 +1,3 @@
+What is the representation of the number 61 in hexadecimal?
+
+<3D>

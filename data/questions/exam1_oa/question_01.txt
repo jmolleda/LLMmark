@@ -1,0 +1,3 @@
+What is the representation of the number 61 in natural binary?
+
+<00111101>
