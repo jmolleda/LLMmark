@@ -19,6 +19,10 @@ See `examples/ollama_client.py` for a minimal example using Ollama local models.
 
 See `examples/openai_client.py` for a minimal example using the OpenAI API to access online models.
 
+## Configuration with `config.yaml`
+
+You can configure project settings using the file `models-api/config.yaml`.
+
 ## Open-answer question file
 
 question.txt
