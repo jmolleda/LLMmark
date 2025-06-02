@@ -1,13 +1,16 @@
+import sys
 import os
 import time
 import json
-import google.generativeai as genai
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from clients.openai_client import OpenAIClient
+
 
 class LLMJudge:
-    def __init__(self, api_key=None, model="models/gemini-1.5-flash"):
-        self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel(model)
+    def __init__(self, client: OpenAIClient, model="models/gemini-1.5-flash"):
+        self.client = client
+        self.model = model
         self.history = []
 
     def generate_prompt(self, question, expected_answer, model_answer):
@@ -38,11 +41,13 @@ class LLMJudge:
 
     def eval(self, question, expected_answer, model_answer):
         prompt = self.generate_prompt(question, expected_answer, model_answer)
+        messages = [{"role": "user", "content": prompt}]
         start_time = time.time()
-        response = self.model.generate_content(prompt)
+        response = self.client.chat(model=self.model, messages=messages)
+
         latency = round(time.time() - start_time, 3)
 
-        raw_text = response.text.strip()
+        raw_text = response.strip()
 
         # Clean up markdown-style code block if present
         if raw_text.startswith("```"):
@@ -56,7 +61,7 @@ class LLMJudge:
             print("Failed to parse model output as JSON.", e)
             result = {
                 "grade": None,
-                "justification": f"Invalid response format:\n{response.text}"
+                "justification": f"Invalid response format:\n{raw_text}"
             }
 
         result["latency"] = latency

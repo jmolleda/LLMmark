@@ -3,59 +3,67 @@ import os
 import json
 from collections import defaultdict
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from clients.openai_client import OpenAIClient
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from llm_evaluator import LLMJudge
 
 JSON_PATH = "data/runs/run_1/gemma3:1b/question_1.json"
 
-def cargar_resultados(path):
+def load_answers(path):
     with open(path, 'r') as f:
         data = json.load(f)
     return data
 
-def agrupar_por_pregunta(data):
-    preguntas = defaultdict(list)
+def group_by_question(data):
+    questions = defaultdict(list)
     for item in data:
         if "question" in item:
-            preguntas[item["question"]].append(item)
-    return preguntas
+            questions[item["question"]].append(item)
+    return questions
 
-def evaluar_preguntas(juez, preguntas_agrupadas):
-    resultados = []
+def eval_questions(judge, grouped_answers):
+    results = []
 
-    for pregunta_texto, ejecuciones in preguntas_agrupadas.items():
-        primera_ejecucion = ejecuciones[0]
-        respuesta_esperada = primera_ejecucion.get("correct_answer", "")
-        razonamiento = primera_ejecucion.get("raw_answer", "")
+    for question_text, runs in grouped_answers.items():
+        first_run = runs[0]
+        expected_answer = first_run.get("correct_answer", "")
+        model_raw_answer = first_run.get("raw_answer", "")
 
         print("\n===============================")
-        print("Pregunta:", pregunta_texto.strip())
-        print("Respuesta esperada:", respuesta_esperada)
-        print("Respuesta del modelo (raw):", razonamiento)
+        print(f"Question: {question_text.strip()}")
+        print(f"Expected Answer: {expected_answer}")
+        print(f"Model Answer (raw): {model_raw_answer}")
 
-        resultado = juez.eval(
-            question=pregunta_texto.strip(),
-            expected_answer=respuesta_esperada.strip(),
-            model_answer=razonamiento.strip()
+        result = judge.eval(
+            question=question_text.strip(),
+            expected_answer=expected_answer.strip(),
+            model_answer=model_raw_answer.strip()
         )
 
-        print("\n--- Evaluación ---")
-        print("Puntuación:", resultado.get("grade"))
-        print("Justificación:", resultado.get("justification"))
-        print("Latencia:", resultado.get("latency"), "segundos")
-        resultados.append(resultado)
+        print("\n--- Evaluation ---")
+        print(f"Score: {result.get('grade')}")
+        print(f"Justification: {result.get('justification')}")
+        print(f"Latency: {result.get('latency')} seconds")
+        results.append(result)
 
-    return resultados
+    return results
 
 if __name__ == "__main__":
-    datos = cargar_resultados(JSON_PATH)
+    data = load_answers(JSON_PATH)
 
-    # Ignorar estadísticas agregadas si existen al principio
-    if "num_correct" in datos[0]:
-        datos = datos[1:]
+    # Ignore aggregated statistics if present at the beginning of the data list
+    # This assumes the first item might be a summary object
+    if "num_correct" in data[0]:
+        data = data[1:]
 
-    preguntas_por_grupo = agrupar_por_pregunta(datos)
+    questions_by_group = group_by_question(data)
 
-    juez = LLMJudge()
-    evaluar_preguntas(juez, preguntas_por_grupo)
+    api_key = os.environ.get("GEMINI_API_KEY")
+    base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    model = "gemini-2.0-flash"
+
+    client = OpenAIClient(api_key=api_key, base_url=base_url)
+
+    judge = LLMJudge(client=client)
+    eval_questions(judge, questions_by_group)
