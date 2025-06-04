@@ -19,9 +19,15 @@ See `examples/ollama_client.py` for a minimal example using Ollama local models.
 
 See `examples/openai_client.py` for a minimal example using the OpenAI API to access online models.
 
+The main entry point is `src/llmmark/models_api/main.py`. You can run it with:
+
+```bash
+python -m llmmark.models_api.main
+```
+
 ## Configuration with `config.yaml`
 
-You can configure project settings using the file `models-api/config.yaml`.
+You can configure project settings using the file `config.yaml` in the project root.
 
 ## Open-answer question file
 

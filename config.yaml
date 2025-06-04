@@ -63,8 +63,8 @@ prompts:
     Do not include any explanation, commentary, or additional text—only the selected option.
 
 folders:
-  data_folder_name: "../data/questions/exam1_oa"
-  base_experiments_folder: "../data/runs"
+  data_folder_name: "data/questions/exam1_oa"
+  base_experiments_folder: "data/runs"
   experiment_folder_name: "run_"
 
 files:

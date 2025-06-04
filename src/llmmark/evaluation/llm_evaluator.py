@@ -1,10 +1,7 @@
-import sys
-import os
 import time
 import json
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from clients.openai_client import OpenAIClient
+from ..clients.openai_client import OpenAIClient
 
 
 class LLMJudge:
