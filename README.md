@@ -5,10 +5,10 @@ Local models are supported using [Ollama](https://github.com/ollama/ollama).
 
 Online models are supported via the [OpenAI API Python library](https://github.com/openai/openai-python).
 
-The main entry point is `src/llmmark/models_api/main.py`. You can run it with:
+The main entry point is `src/llmmark/main.py`. You can run it with:
 
 ```bash
-python -m llmmark.models_api.main
+python -m llmmark.main
 ```
 
 ## API keys

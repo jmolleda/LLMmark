@@ -6,8 +6,8 @@ import requests
 from .settings import Settings
 from .statistics import Statistics
 
-from ..clients.openai_client import OpenAIClient
-from ..clients.ollama_client import OllamaClient
+from .clients.openai_client import OpenAIClient
+from .clients.ollama_client import OllamaClient
 
 
 def open_dataset_folder(settings):
