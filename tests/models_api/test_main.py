@@ -1,15 +1,11 @@
-import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from pathlib import Path
 
-from _pytest.monkeypatch import MonkeyPatch
-from settings import Settings
-from main import (
+from llmmark.models_api.settings import Settings
+from llmmark.models_api.main import (
     get_local_models,
     get_questions_from_folder,
-    create_run_folder
+    create_run_folder,
 )
 
 def test_get_models():

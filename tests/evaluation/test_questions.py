@@ -1,11 +1,8 @@
-import sys
 import os
 import json
 from collections import defaultdict
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from llm_evaluator import LLMJudge
+from llmmark.evaluation.llm_evaluator import LLMJudge
 
 JSON_PATH = "../data/runs/run_1/gemma3:1b/question_1.json"
 
