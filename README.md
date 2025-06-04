@@ -1,17 +1,13 @@
-# LLMmark
+# 📘LLMmark
 LLMmark interacts with large language models (LLMs) to solve exams.
 
 Local models are supported using [Ollama](https://github.com/ollama/ollama).
 
 Online models are supported via the [OpenAI API Python library](https://github.com/openai/openai-python).
 
-The main entry point is `src/llmmark/main.py`. You can run it with:
+## 🚀 Getting Started
 
-```bash
-python -m llmmark.main
-```
-
-## API keys
+### 🔧 Prerequisites
 This project uses API keys from environment variables.
 
 ```bash
@@ -19,17 +15,25 @@ export GEMINI_API_KEY=<YOUR_API_KEY_HERE>
 source ~/.bashrc
 ```
 
-## Usage Example
+### ▶️ Running the Project
+
+The main entry point is `src/llmmark/main.py`. You can run it with:
+
+```bash
+python -m llmmark.main
+```
+
+### Usage examples
 
 See `examples/ollama_client.py` for a minimal example using Ollama local models.
 
 See `examples/openai_client.py` for a minimal example using the OpenAI API to access online models.
 
-## Configuration with `config.yaml`
+### Configuration with `config.yaml`
 
 You can configure project settings using the file `config.yaml` in the project root.
 
-## Open-answer question file
+### Open-answer question file
 
 question.txt
 
@@ -39,7 +43,7 @@ What is the representation of the number 61 in natural binary?
 <00111101>
 ```
 
-## Multiple-choice question file
+### Multiple-choice question file
 
 question.txt
 
@@ -55,7 +59,7 @@ What is the representation of the number 61 in natural binary?
 <b> 
 ```
 
-## Output files
+### Output files
 
 run_1/gemini-2.0-flash/stats.json
 
@@ -88,4 +92,9 @@ run_1/gemini-2.0-flash/question.json
     "response_time (s)": 0.524
   }
 ]
+```
+
+# 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 ```
