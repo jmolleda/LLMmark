@@ -1,6 +1,6 @@
-import requests
-from openai import OpenAI
 import time
+
+from openai import OpenAI
 
 class OpenAIClient:
     def __init__(self, api_key: str,  base_url: str, max_requests_per_minute=0):
@@ -9,12 +9,12 @@ class OpenAIClient:
 
     def chat(self, model, messages, stream=False):
         response = self.client.chat.completions.create(model=model, messages=messages)
-        if "gemini" in model:
-            # Take into account Google Generative Language API quota limits
-            # This affects the mearured response time
-            if self.max_requests_per_minute > 0:
-                time.sleep(60 / self.max_requests_per_minute)
-            return response.choices[0].message.content
-        if "gpt" in model:
-            return response.output_text
-        return ""
+
+        # Take into account Google Generative Language API quota limits for Gemini models
+        if "gemini" in model and self.max_requests_per_minute > 0:
+            # This affects the measured response time
+            time.sleep(60 / self.max_requests_per_minute)
+
+        # The OpenAI Python client returns the response text in the same way for
+        # both GPT and Gemini models
+        return response.choices[0].message.content
