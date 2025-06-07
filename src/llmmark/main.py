@@ -57,7 +57,8 @@ def create_run_folder(settings):
     existing = [d for d in os.listdir(base_folder) if d.startswith(prefix) and os.path.isdir(os.path.join(base_folder, d))]
     run_numbers = [int(d.split('_')[1]) for d in existing if d.split('_')[1].isdigit()]
     n = max(run_numbers, default=0) + 1
-    run_folder = os.path.join(base_folder, f"{prefix}{n}")
+    run_folder_name = f"{prefix}{n:03d}"
+    run_folder = os.path.join(base_folder, run_folder_name)
     os.makedirs(run_folder)
     print(f"Created run experiment folder: {run_folder}")
     return run_folder
@@ -213,9 +214,6 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
             }
 
             start_time = time.time()
-
-
-
 
             answer = get_llm_response(settings, client, model_id, prompt)
             response_time = round(time.time() - start_time, 3)
