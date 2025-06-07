@@ -2,9 +2,12 @@ import requests
 from openai import OpenAI, InternalServerError
 import time
 
+from opik.integrations.openai import track_openai
+
+
 class OpenAIClient:
     def __init__(self, api_key: str,  base_url: str, max_requests_per_minute=0):
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.client = track_openai(OpenAI(api_key=api_key, base_url=base_url))
         self.max_requests_per_minute = max_requests_per_minute
 
     def chat(self, model, messages, stream=False):
