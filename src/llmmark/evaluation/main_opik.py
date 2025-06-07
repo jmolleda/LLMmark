@@ -84,29 +84,34 @@ def select_run(settings):
     return selected_run, run_path
 
 def select_model(selected_run, run_path):
+    """
+    Permite al usuario seleccionar uno o todos los modelos disponibles en una ejecución.
+    Devuelve una lista de IDs de modelos a evaluar.
+    """
     available_models = sorted([
         d for d in os.listdir(run_path)
         if os.path.isdir(os.path.join(run_path, d))
     ])
     if not available_models:
         print("No models found in this run.")
-        return None, None
+        return []
+
     print(f"\nAvailable models in \033[1m{selected_run}\033[0m:")
     for idx, model in enumerate(available_models, 1):
         print(f"{idx}. {model}")
-    model_choice = input("Enter model number or 'A' to run all models (default [1]): ").strip()
-    if model_choice.upper() == 'A':
-        print("Selecting the first model for evaluation as 'A' option is not fully implemented yet.")
-        model_idx = 0
-    elif model_choice.isdigit() and 1 <= int(model_choice) <= len(available_models):
-        model_idx = int(model_choice) - 1
-    else:
-        model_idx = 0
-    model_id = available_models[model_idx]
-    model_path = os.path.join(run_path, model_id)
-    print(f"\nSelected model: \033[92m{model_id}\033[0m")
-    return model_id, model_path
+        
+    model_choice = input("Enter model number or 'A' to run all models (default: all): ").strip().lower()
 
+    if model_choice == 'a' or model_choice == '':
+        print("\nSelecting all available models for evaluation.")
+        return available_models
+    elif model_choice.isdigit() and 1 <= int(model_choice) <= len(available_models):
+        selected_model_id = available_models[int(model_choice) - 1]
+        print(f"\nSelected model: \033[92m{selected_model_id}\033[0m")
+        return [selected_model_id] # Devuelve una lista con un solo elemento
+    else:
+        print("Invalid selection. Aborting.")
+        return []
 
 def main():
     settings = Settings()
@@ -115,77 +120,83 @@ def main():
     if not selected_run:
         return
 
-    model_id, model_path = select_model(selected_run, run_path)
-    if not model_id:
+    # model_id, model_path = select_model(selected_run, run_path)
+
+    selected_models_ids = select_model(selected_run, run_path)
+    if not selected_models_ids:
         return
+    
+    for model_id in selected_models_ids:
+        model_path = os.path.join(run_path, model_id)
 
-    raw_data = load_model_answers(run_path, model_id, settings.files['question_file_name'])
-    grouped = group_by_question(raw_data)
 
-    print(f"\n=== Evaluating model responses and logging to Opik ===")
+        raw_data = load_model_answers(run_path, model_id, settings.files['question_file_name'])
+        grouped = group_by_question(raw_data)
 
-    results = []
-    for q_idx, (question, answers) in enumerate(grouped.items(), 1):
-        print(f"\n{q_idx:02d}. \033[1mQuestion:\033[0m {question.strip()}")
-        expected_answer = answers[0]["correct_answer"]
-        print(f"     \033[96mExpected Answer:\033[0m {expected_answer.strip()}")
+        print(f"\n=== Evaluating model responses and logging to Opik ===")
 
-        trace_metadata = {
-            "model_id": model_id,
-            "run_name": selected_run,
-            "question_text": question.strip()
-        }
+        results = []
+        for q_idx, (question, answers) in enumerate(grouped.items(), 1):
+            print(f"\n{q_idx:02d}. \033[1mQuestion:\033[0m {question.strip()}")
+            expected_answer = answers[0]["correct_answer"]
+            print(f"     \033[96mExpected Answer:\033[0m {expected_answer.strip()}")
 
-        trace = client.trace(
-            name=f"eval_{model_id}_q{q_idx}",
-            metadata=trace_metadata
-        )
+            trace_metadata = {
+                "model_id": model_id,
+                "run_name": selected_run,
+                "question_text": question.strip()
+            }
 
-        required_phrases_for_contains = [word.strip() for word in expected_answer.split() if word.strip()]
-        if len(required_phrases_for_contains) > 5:
-            required_phrases_for_contains = required_phrases_for_contains[:5]
-
-        for run_idx, run in enumerate(answers[:settings.num_runs_per_question], 1):
-            model_output = run["raw_answer"]
-
-            rouge_scores = calculate_rouge(model_output, expected_answer)
-            contains_results = check_contains(model_output, required_phrases_for_contains)
-
-            trace.span(
-                name=f"run_{run_idx}",
-                input={
-                    "model_output": model_output,
-                    "expected_answer": expected_answer
-                },
-                output={**rouge_scores, **contains_results},
-                metadata={"run_iteration": run_idx}
+            trace = client.trace(
+                name=f"eval_{model_id}_q{q_idx}",
+                metadata=trace_metadata
             )
 
-            print(f"   Run {run_idx}:")
-            print(f"     \033[93mModel Answer:\033[0m {model_output.strip()}")
-            print("     --- ROUGE Scores ---")
-            for metric_name, score_value in rouge_scores.items():
-                print(f"         \033[92m{metric_name.replace('_', ' ').title()}:\033[0m {score_value:.4f}")
-            print("     --- Contains Results ---")
-            if "contains_percentage" in contains_results:
-                print(f"         \033d[92mContains Percentage:\033[0m {contains_results['contains_percentage']:.2f}")
-            if "all_contained" in contains_results:
-                print(f"         \033[92mAll Contained:\033[0m {bool(contains_results['all_contained'])}")
+            required_phrases_for_contains = [word.strip() for word in expected_answer.split() if word.strip()]
+            if len(required_phrases_for_contains) > 5:
+                required_phrases_for_contains = required_phrases_for_contains[:5]
 
-            results.append({
-                "question": question,
-                "run": run_idx,
-                "model_output": model_output,
-                "expected_answer": expected_answer,
-                "rouge_scores": rouge_scores,
-                "contains_results": contains_results,
-            })
-        
-        trace.end()
+            for run_idx, run in enumerate(answers[:settings.num_runs_per_question], 1):
+                model_output = run["raw_answer"]
 
-    output_path = os.path.join(model_path, settings.evaluation_output_file)
-    with open(output_path, "w") as f:
-        json.dump(results, f, indent=2)
+                rouge_scores = calculate_rouge(model_output, expected_answer)
+                contains_results = check_contains(model_output, required_phrases_for_contains)
+
+                trace.span(
+                    name=f"run_{run_idx}",
+                    input={
+                        "model_output": model_output,
+                        "expected_answer": expected_answer
+                    },
+                    output={**rouge_scores, **contains_results},
+                    metadata={"run_iteration": run_idx}
+                )
+
+                print(f"   Run {run_idx}:")
+                print(f"     \033[93mModel Answer:\033[0m {model_output.strip()}")
+                print("     --- ROUGE Scores ---")
+                for metric_name, score_value in rouge_scores.items():
+                    print(f"         \033[92m{metric_name.replace('_', ' ').title()}:\033[0m {score_value:.4f}")
+                print("     --- Contains Results ---")
+                if "contains_percentage" in contains_results:
+                    print(f"         \033d[92mContains Percentage:\033[0m {contains_results['contains_percentage']:.2f}")
+                if "all_contained" in contains_results:
+                    print(f"         \033[92mAll Contained:\033[0m {bool(contains_results['all_contained'])}")
+
+                results.append({
+                    "question": question,
+                    "run": run_idx,
+                    "model_output": model_output,
+                    "expected_answer": expected_answer,
+                    "rouge_scores": rouge_scores,
+                    "contains_results": contains_results,
+                })
+            
+            trace.end()
+
+        output_path = os.path.join(model_path, settings.evaluation_output_file)
+        with open(output_path, "w") as f:
+            json.dump(results, f, indent=2)
 
     print(f"\nEvaluation results saved to: {output_path}")
     print(f"\n\033[1mEvaluation results available on Opik/Comet project: 'LLMmark_evaluation'\033[0m")
