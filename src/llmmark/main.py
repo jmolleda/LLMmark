@@ -9,6 +9,12 @@ from .statistics import Statistics
 from .clients.openai_client import OpenAIClient
 from .clients.ollama_client import OllamaClient
 
+from opik import Opik
+opik_client = Opik(project_name="LLMmark_response_generation")
+
+
+
+
 
 def open_dataset_folder(settings):
     """Open the folder containing the question dataset."""
@@ -163,7 +169,7 @@ def select_question_type(settings):
     
     return None
 
-def run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt, statistics):
+def run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt, statistics, trace):
     print(f"\n\033[92m=== Running questions for model: {model_display_name} ({model_id}) ===\033[0m")
     model_run_folder = os.path.join(run_folder, model_id)
     os.makedirs(model_run_folder, exist_ok=True)
@@ -194,10 +200,27 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
             iter_str = f"{run_idx + 1:2}"  # 2-character width for iteration
             print(f"Experiment: {exp_name} | Model: {model_display_name} | Question: {q_str} | Iteration: {iter_str} | Answer: ", end="")
 
+            
+
+            opik_metadata = {
+                "model_display_name": model_display_name,
+                "model_id": model_id,
+                "run_name": exp_name,
+                "question_file": filename,
+                "iteration": run_idx + 1,
+                "correct_answer": correct_answer,
+                "question_type": settings.question_type
+            }
+
             start_time = time.time()
+
+
+
+
             answer = get_llm_response(settings, client, model_id, prompt)
             response_time = round(time.time() - start_time, 3)
             total_response_time += response_time
+
             
             answer_no_newlines = answer.replace('\n', '') if answer else ''
             answer_no_think = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
@@ -214,12 +237,14 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
                     end = start + len(correct_answer)
                     answer_clean = answer_clean[start:end]
 
-            if answer_clean.strip().lower() == correct_answer.strip().lower():
-                print(f"\033[92m{answer_clean}\033[0m")  # Green                
+            is_correct = answer_clean.strip().lower() == correct_answer.strip().lower()
+            
+            if is_correct:
+                print(f"\033[92m{answer_clean}\033[0m")
                 correct_answers += 1
                 statistics.record_experiment(True, response_time)
             else:
-                print(f"\033[91m{answer_clean}\033[0m")  # Red
+                print(f"\033[91m{answer_clean}\033[0m")
                 statistics.record_experiment(False, response_time)
 
             outputs.append({
@@ -230,6 +255,21 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
                 "model": model_display_name,
                 "response_time (s)": response_time,
             })
+
+
+            trace.span(
+                name=f"q{idx}_r{run_idx + 1}",
+                input={
+                    "question": question,
+                },
+                output={
+                    "answer": answer_clean,
+                    "correct_answer": correct_answer,
+                    "raw_answer": answer_no_think,
+                    "response_time (s)": response_time,
+                },
+                metadata=opik_metadata
+            )
 
         # Calculate statistics
         accuracy = round(correct_answers / settings.num_runs_per_question, 2)
@@ -284,11 +324,56 @@ def main():
     # Run questions for each selected model
     for model_display_name, model_id in selected_models:
         statistics = Statistics()
-        run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt, statistics)
+
+        trace = opik_client.trace(
+            name=f"{os.path.basename(run_folder)}_{model_id}",
+            metadata={
+                "model_id": model_id,
+                "model_display_name": model_display_name,
+                "run_name": os.path.basename(run_folder),
+                "question_file": settings.files['question_file_name'],
+                "question_type": settings.question_type,
+                "num_runs_per_question": settings.num_runs_per_question,
+                "model_source": "local" if model_source == 'L' else "online",
+                "base_prompt": base_prompt
+            }
+        )
+
+        
+
+        run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt, statistics, trace)
+
+        trace.end()
+        
         statistics.print_statistics()
         statistics.save_statistics(os.path.join(run_folder, model_id, settings.files['stats_file_name']))
 
+        
+
+
+
+
+
+        
+
     print("\n=== All experiments completed ===")
+
+
+    trace_input = {
+        
+    }
+
+    trace_metadata = {
+        "model_id": model_id,
+        # Si el model source es 'L', entonces es un modelo local, de lo contrario es un modelo online
+        "model_type": "local" if model_source == 'L' else "online",
+        "run_name": os.path.basename(run_folder),
+        "question_file": settings.files['question_file_name'],
+        "question_type": settings.question_type,
+        "num_runs_per_question": settings.num_runs_per_question,
+    }
+
+
 
 if __name__ == "__main__":
     main()
