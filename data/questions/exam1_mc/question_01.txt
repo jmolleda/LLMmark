@@ -1,9 +1,0 @@
-What is the representation of the number 61 in natural binary? 
-[a] 00111110000
-[b] 00111101
-[c] 0011110110
-[d] 43h
-[e] 10101110
-[f] 101001001
-
-<b>
