@@ -8,13 +8,8 @@ from .statistics import Statistics
 
 from .clients.openai_client import OpenAIClient
 from .clients.ollama_client import OllamaClient
-
-from opik import Opik
+from opik import Opik, LLMProvider
 opik_client = Opik(project_name="LLMmark_response_generation")
-
-
-
-
 
 def open_dataset_folder(settings):
     """Open the folder containing the question dataset."""
@@ -176,7 +171,7 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
     os.makedirs(model_run_folder, exist_ok=True)
 
     for idx, (filename, question) in enumerate(questions, 1):
-        #Get the correct answer from the question, and remove it from the question text
+        # Get the correct answer from the question, and remove it from the question text
         match = re.search(r'<(.*?)>', question)
         if settings.question_type == 'multiple_choice':
             # For multiple-choice questions, the correct answer is in brackets
@@ -201,8 +196,6 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
             iter_str = f"{run_idx + 1:2}"  # 2-character width for iteration
             print(f"Experiment: {exp_name} | Model: {model_display_name} | Question: {q_str} | Iteration: {iter_str} | Answer: ", end="")
 
-            
-
             opik_metadata = {
                 "model_display_name": model_display_name,
                 "model_id": model_id,
@@ -219,7 +212,6 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
             response_time = round(time.time() - start_time, 3)
             total_response_time += response_time
 
-            
             answer_no_newlines = answer.replace('\n', '') if answer else ''
             answer_no_think = re.sub(r'<think>.*?</think>', '', answer_no_newlines, flags=re.DOTALL).strip() if answer_no_newlines else ''
             if settings.question_type == 'multiple_choice':
@@ -254,9 +246,10 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
                 "response_time (s)": response_time,
             })
 
-
             trace.span(
                 name=f"q{idx}_r{run_idx + 1}",
+                type="llm",
+                model=model_display_name,
                 input={
                     "question": question,
                 },
@@ -337,8 +330,6 @@ def main():
             }
         )
 
-        
-
         run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt, statistics, trace)
 
         trace.end()
@@ -346,30 +337,7 @@ def main():
         statistics.print_statistics()
         statistics.save_statistics(os.path.join(run_folder, model_id, settings.files['stats_file_name']))
 
-        
-
-
-
-
-
-        
-
     print("\n=== All experiments completed ===")
-
-
-    trace_input = {
-        
-    }
-
-    trace_metadata = {
-        "model_id": model_id,
-        # Si el model source es 'L', entonces es un modelo local, de lo contrario es un modelo online
-        "model_type": "local" if model_source == 'L' else "online",
-        "run_name": os.path.basename(run_folder),
-        "question_file": settings.files['question_file_name'],
-        "question_type": settings.question_type,
-        "num_runs_per_question": settings.num_runs_per_question,
-    }
 
 
 
