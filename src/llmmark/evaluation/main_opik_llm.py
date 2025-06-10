@@ -1,18 +1,20 @@
 import os
 import json
+import time
 from collections import defaultdict
 from ..settings import Settings
-
 from rouge_score import rouge_scorer
-
 from opik import Opik
-client = Opik(project_name="LLMmark_evaluation")
+from opik.evaluation.metrics import GEval
+from opik.evaluation.models import LiteLLMChatModel
+import litellm
+
+opik_client = Opik(project_name="LLMmark_evaluation")
 
 def calculate_rouge(generated_text: str, reference_text: str) -> dict:
     if not generated_text or not reference_text:
         return {'rouge1_f1': 0.0, 'rouge2_f1': 0.0, 'rougeL_f1': 0.0}
 
-    # use_stemmer to help with stemming and improve matching
     scorer = rouge_scorer.RougeScorer(['rouge1', 'rouge2', 'rougeL'], use_stemmer=True)
     scores = scorer.score(reference_text, generated_text)
 
@@ -45,8 +47,47 @@ def check_contains(generated_text: str, required_phrases: list[str], case_sensit
         "all_contained": bool(all_contained)
     }
 
+def calculate_geval(model_output: str, expected_answer: str, question: str) -> dict:
+    # Quota limits for gemini
+    # time.sleep(15)
+    try:
+        # Gemini 2.0 flash lite as model for LLM-as-a-judge
+        eval_llm = LiteLLMChatModel(model_name="gemini/gemini-2.0-flash-lite")
 
+        metric = GEval(
+            model=eval_llm,
+            task_introduction="You are an expert judge evaluating the quality of a generated answer compared to a reference answer for a given question.",
+            evaluation_criteria="""
+                Evaluate the overall quality of the 'Model Answer' compared to the 'Expected Answer'.
+                Consider both faithfulness (is it factually correct according to the expected answer?) and relevance (does it directly answer the 'Question'?).
 
+                Provide a single integer score from 0 to 10, where 0 is completely incorrect/irrelevant and 10 is perfectly correct and relevant.
+                DO NOT provide any other text, explanation, or JSON formatting. Only the integer score.
+            """
+        )
+
+        geval_input = f"""
+        Question: {question}
+        Expected Answer: {expected_answer}
+        Model Answer: {model_output}
+        """
+        
+        score_result = metric.score(output=geval_input)
+        
+        if score_result is None:
+            raise ValueError("GEval metric.score() returned None.")
+
+        return {
+            'geval_score': score_result.value,
+            'geval_reason': score_result.reason 
+        }
+    except litellm.RateLimitError as e:
+        print(f"\n\033[91mRate limit hit. Returning 0 for GEval. Error: {e}\033[0m")
+        return {'geval_score': 0.0, 'geval_reason': f"Rate limit error: {e}"}
+    except Exception as e:
+        print(f"\nError calculating GEval: {e}")
+        return {'geval_score': 0.0, 'geval_reason': str(e)}
+    
 def load_model_answers(run_folder, model_id, question_file_prefix):
     model_path = os.path.join(run_folder, model_id)
     all_items = []
@@ -84,10 +125,6 @@ def select_run(settings):
     return selected_run, run_path
 
 def select_model(selected_run, run_path):
-    """
-    Permite al usuario seleccionar uno o todos los modelos disponibles en una ejecución.
-    Devuelve una lista de IDs de modelos a evaluar.
-    """
     available_models = sorted([
         d for d in os.listdir(run_path)
         if os.path.isdir(os.path.join(run_path, d))
@@ -108,7 +145,7 @@ def select_model(selected_run, run_path):
     elif model_choice.isdigit() and 1 <= int(model_choice) <= len(available_models):
         selected_model_id = available_models[int(model_choice) - 1]
         print(f"\nSelected model: \033[92m{selected_model_id}\033[0m")
-        return [selected_model_id] # Devuelve una lista con un solo elemento
+        return [selected_model_id]
     else:
         print("Invalid selection. Aborting.")
         return []
@@ -120,8 +157,6 @@ def main():
     if not selected_run:
         return
 
-    # model_id, model_path = select_model(selected_run, run_path)
-
     selected_models_ids = select_model(selected_run, run_path)
     if not selected_models_ids:
         return
@@ -129,11 +164,10 @@ def main():
     for model_id in selected_models_ids:
         model_path = os.path.join(run_path, model_id)
 
-
         raw_data = load_model_answers(run_path, model_id, settings.files['question_file_name'])
         grouped = group_by_question(raw_data)
 
-        print(f"\n=== Evaluating model responses and logging to Opik ===")
+        print(f"\n=== Evaluating model responses for {model_id} and logging to Opik ===")
 
         results = []
         for q_idx, (question, answers) in enumerate(grouped.items(), 1):
@@ -147,7 +181,7 @@ def main():
                 "question_text": question.strip()
             }
 
-            trace = client.trace(
+            trace = opik_client.trace(
                 name=f"eval_{model_id}_q{q_idx}",
                 metadata=trace_metadata
             )
@@ -161,16 +195,42 @@ def main():
 
                 rouge_scores = calculate_rouge(model_output, expected_answer)
                 contains_results = check_contains(model_output, required_phrases_for_contains)
+                geval_scores = calculate_geval(model_output, expected_answer, question)
 
-                trace.span(
+                span_output = {**rouge_scores, **contains_results, **geval_scores}
+
+                span = trace.span(
                     name=f"run_{run_idx}",
                     input={
                         "model_output": model_output,
                         "expected_answer": expected_answer
                     },
-                    output={**rouge_scores, **contains_results},
+                    output={model_output},
                     metadata={"run_iteration": run_idx}
                 )
+                
+                scores_to_log = []
+
+                # Add ROUGE and Contains
+                all_scores = {**rouge_scores, **contains_results}
+
+                for name, value in all_scores.items():
+                    scores_to_log.append({
+                        "id": span.id,
+                        "name": name,
+                        "value": float(value)
+                    })
+
+                # GEval score
+                scores_to_log.append({
+                    "id": span.id,
+                    "name": "geval_score",
+                    "value": geval_scores['geval_score'],
+                    "reason": geval_scores.get('geval_reason', '')
+                })
+
+                # 3. Log the scores to the span
+                opik_client.log_spans_feedback_scores(scores=scores_to_log)
 
                 print(f"   Run {run_idx}:")
                 print(f"     \033[93mModel Answer:\033[0m {model_output.strip()}")
@@ -179,9 +239,13 @@ def main():
                     print(f"         \033[92m{metric_name.replace('_', ' ').title()}:\033[0m {score_value:.4f}")
                 print("     --- Contains Results ---")
                 if "contains_percentage" in contains_results:
-                    print(f"         \033d[92mContains Percentage:\033[0m {contains_results['contains_percentage']:.2f}")
+                    print(f"         \033[92mContains Percentage:\033[0m {contains_results['contains_percentage']:.2f}%")
                 if "all_contained" in contains_results:
                     print(f"         \033[92mAll Contained:\033[0m {bool(contains_results['all_contained'])}")
+                print("     --- GEval Score ---")
+                print(f"         \033[92mGEval Score:\033[0m {geval_scores['geval_score']:.4f}")
+                print(f"         \033[92mGEval Reason:\033[0m {geval_scores['geval_reason']}")
+
 
                 results.append({
                     "question": question,
@@ -190,9 +254,11 @@ def main():
                     "expected_answer": expected_answer,
                     "rouge_scores": rouge_scores,
                     "contains_results": contains_results,
+                    "geval_scores": geval_scores,
                 })
             
             trace.end()
+            
 
         output_path = os.path.join(model_path, settings.evaluation_output_file)
         with open(output_path, "w") as f:
