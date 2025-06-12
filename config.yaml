@@ -52,7 +52,7 @@ model_mode: "chat"
 
 prompts:
   open_answer_questions: |
-    Answer the following question without explanation or reasoning.
+    Answer the following question.
 
   multiple_choice_questions: |
     You must respond with exactly one of the following options: [a], [b], [c], [d], [e], or [f].
