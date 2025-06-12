@@ -14,6 +14,8 @@ opik_client = Opik(project_name="LLMmark_response_generation")
 def open_dataset_folder(settings):
     base_folder = settings.folders['data_folder_name']
     
+    base_folder = os.path.join(base_folder, settings.question_type)
+    
     if not os.path.exists(base_folder) or not os.path.isdir(base_folder):
         print(f"Base data folder '{base_folder}' does not exist.")
         exit(1)
@@ -77,7 +79,6 @@ def open_dataset_folder(settings):
     print(f"Selected language: \033[92m{potential_languages[final_lang_code]}\033[0m")
     
     return final_path
-
 
 def get_local_models(models):
     """Return a list of (display_name, model_id) tuples"""
@@ -212,17 +213,46 @@ def select_online_model(models):
     return selected_model, False, client
 
 def select_question_type(settings):
-    """Select open-answer or multiple-choice questions and return the base prompt."""
-    print("Question type selected: ", end="")
-    if settings.question_type == 'multiple_choice':
-        print("\033[92mmultiple choice\033[0m")
-        return settings.prompts['multiple_choice_questions']
+    """
+    Prompt depending on the settings.question_types list
+    """
+    question_types_list = settings.question_types
+    if not question_types_list:
+        print("No question types defined in the settings file.")
+        exit(1)
+
+    available_types = {}
+    for item in question_types_list:
+        available_types.update(item)
+
+    options = list(available_types.keys())
+
+    print("\nPlease select the question type to run:")
+    for idx, key in enumerate(options, 1):
+        print(f"  {idx}. {available_types[key]}")
+
+    choice = input(f"Enter number (default [1] for {available_types[options[0]]}): ").strip()
+
+    selected_index = 0 
+    if choice.isdigit() and 1 <= int(choice) <= len(options):
+        selected_index = int(choice) - 1
+    elif choice:
+        print(f"Invalid selection. Using default.")
+
+    selected_type_key = options[selected_index]
     
-    if settings.question_type == 'open_answer':
-        print("\033[92mopen answer\033[0m")
-        return settings.prompts['open_answer_questions']
-    
-    return None
+    print(f"Question type selected: \033[92m{available_types[selected_type_key]}\033[0m")
+
+    settings.question_type = selected_type_key
+
+    prompt_key = f"{selected_type_key}_questions"
+    base_prompt = settings.prompts.get(prompt_key)
+
+    if base_prompt is None:
+        print(f"Error: Prompt key '{prompt_key}' not found in settings.")
+        exit(1)
+        
+    return base_prompt
 
 def run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, base_prompt, statistics, trace):
     print(f"\n\033[92m=== Running questions for model: {model_display_name} ({model_id}) ===\033[0m")
@@ -349,11 +379,14 @@ def main():
     # Initialize client later: Ollama or OpenAI
     client = None
     
+    # Select question type (open-answer or multiple-choice)
+    base_prompt = select_question_type(settings)
+    
     # Access question dataset folder
     folder = open_dataset_folder(settings)
 
-    # Ask user to choose between local or online models
-    model_source = input("Do you want to run [l]ocal models or (o)nline models?: ").strip().upper()
+    # Choose model source
+    model_source = input("Do you want to run [l]ocal models or (o)nline models? (default: local): ").strip().upper()
     if model_source not in ['L', 'O', ''] or model_source == '':
         model_source = 'L'
     if model_source == 'L':
@@ -362,15 +395,14 @@ def main():
     else:
         models = get_online_models(settings.openai_models)
         selected, run_all_models, client = select_online_model(models)
-        models = [(name, mid) for name, mid, _, _, _ in models] # Remove base_url and api_key from models list
+        models = [(name, mid) for name, mid, _, _, _ in models]
 
     if run_all_models:
         selected_models = [(name, mid) for name, mid in models if mid in set(selected)]
     else:
         selected_models = [(next((name for name, mid in models if mid == selected), selected), selected)]    
 
-    # Select question type
-    base_prompt = select_question_type(settings)
+    
 
     # Create run folder
     run_folder = create_run_folder(settings)
