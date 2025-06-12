@@ -12,13 +12,72 @@ from opik import Opik, LLMProvider
 opik_client = Opik(project_name="LLMmark_response_generation")
 
 def open_dataset_folder(settings):
-    """Open the folder containing the question dataset."""
-    folder = settings.folders['data_folder_name']
-    if not os.path.exists(folder):
-        print(f"Folder {folder} does not exist.")
+    base_folder = settings.folders['data_folder_name']
+    
+    if not os.path.exists(base_folder) or not os.path.isdir(base_folder):
+        print(f"Base data folder '{base_folder}' does not exist.")
         exit(1)
-    print(f"Question dataset folder: \033[92m{folder}\033[0m")
-    return folder
+
+    try:
+        # List all the exercise folders
+        exercise_folders = sorted([d for d in os.listdir(base_folder) if os.path.isdir(os.path.join(base_folder, d))])
+    except OSError as e:
+        print(f"Error reading subfolders from '{base_folder}': {e}")
+        exit(1)
+
+    if not exercise_folders:
+        print(f"No exercise folders found in '{base_folder}'.")
+        exit(1)
+
+    print("\nPlease select an exercise folder:")
+    for idx, folder_name in enumerate(exercise_folders, 1):
+        print(f"  {idx}. {folder_name}")
+
+    choice = input("Enter the number of the folder (default [1]): ").strip()
+    
+    selected_index = 0  # Default to the first folder
+    if choice.isdigit() and 1 <= int(choice) <= len(exercise_folders):
+        selected_index = int(choice) - 1
+    elif choice:
+        print(f"Invalid choice. Using default folder: {exercise_folders[0]}")
+
+    selected_folder_name = exercise_folders[selected_index]
+    selected_folder_path = os.path.join(base_folder, selected_folder_name)
+    print(f"Selected folder: \033[92m{selected_folder_name}\033[0m")
+
+    # Selection of language
+    potential_languages = {"en": "English", "es": "Spanish"}
+    found_languages = [lang for lang in potential_languages if os.path.isdir(os.path.join(selected_folder_path, lang))]
+
+    # If no language folders are found, return the path to the selected exercise folder
+    if not found_languages:
+        return selected_folder_path
+
+    # If language folders are found, prompt for selection
+    print("\nLanguage options found. Please select one:")
+    for idx, lang_code in enumerate(found_languages, 1):
+        print(f"  {idx}. {potential_languages[lang_code]}")
+
+    lang_choice = input("Enter language number (default [1] for English): ").strip()
+
+    # Determine default language (prefer English if available)
+    default_lang_idx = 0
+    if "en" in found_languages:
+        default_lang_idx = found_languages.index("en")
+
+    selected_lang_idx = default_lang_idx
+    if lang_choice.isdigit() and 1 <= int(lang_choice) <= len(found_languages):
+        selected_lang_idx = int(lang_choice) - 1
+    elif lang_choice:
+        print("Invalid language choice. Using default.")
+
+    final_lang_code = found_languages[selected_lang_idx]
+    final_path = os.path.join(selected_folder_path, final_lang_code)
+    
+    print(f"Selected language: \033[92m{potential_languages[final_lang_code]}\033[0m")
+    
+    return final_path
+
 
 def get_local_models(models):
     """Return a list of (display_name, model_id) tuples"""
@@ -171,14 +230,16 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
     os.makedirs(model_run_folder, exist_ok=True)
 
     for idx, (filename, question) in enumerate(questions, 1):
+        # TODO: Remove evaluation of questions with match
         # Get the correct answer from the question, and remove it from the question text
-        match = re.search(r'<(.*?)>', question)
-        if settings.question_type == 'multiple_choice':
+        match = re.search(r'<(.*)>', question, re.DOTALL)
+
+        # if settings.question_type == 'multiple_choice':
             # For multiple-choice questions, the correct answer is in brackets
-            correct_answer = "[" + match.group(1)  + "]"
-        elif settings.question_type == 'open_answer':
+            # correct_answer = "[" + match.group(1)  + "]"
+        # elif settings.question_type == 'open_answer':
             # For open-answer questions, the correct answer is the text inside the brackets
-            correct_answer = match.group(1)
+        correct_answer = match.group(1)
         # Remove the correct answer from the question text
         if match:
             question = re.sub(r'<.*?>', '', question)
@@ -187,7 +248,7 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
         prompt = base_prompt + question
         print(f"\n{prompt}")
         outputs = []
-        correct_answers = 0
+        # correct_answers = 0 # TODO: Remove evaluation of questions with match
         total_response_time = 0
         for run_idx in range(settings.num_runs_per_question):
             # Display experiment name, model name, question number, and iteration
@@ -221,21 +282,25 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
             elif settings.question_type == 'open_answer':
                 # For open-answer questions, keep the answer as is
                 answer_clean = answer_no_think.strip()
-                # If the correct answer is in the answer, extract it
-                if correct_answer.lower() in answer_clean.lower():
-                    start = answer_clean.lower().find(correct_answer.lower())
-                    end = start + len(correct_answer)
-                    answer_clean = answer_clean[start:end]
+                # # If the correct answer is in the answer, extract it
+                # if correct_answer.lower() in answer_clean.lower():
+                #     start = answer_clean.lower().find(correct_answer.lower())
+                #     end = start + len(correct_answer)
+                #     answer_clean = answer_clean[start:end]
 
-            is_correct = answer_clean.strip().lower() == correct_answer.strip().lower()
+            # is_correct = answer_clean.strip().lower() == correct_answer.strip().lower()
             
-            if is_correct:
-                print(f"\033[92m{answer_clean}\033[0m")
-                correct_answers += 1
-                statistics.record_experiment(True, response_time)
-            else:
-                print(f"\033[91m{answer_clean}\033[0m")
-                statistics.record_experiment(False, response_time)
+            # if is_correct:
+            #     print(f"\033[92m{answer_clean}\033[0m")
+            #     correct_answers += 1
+            #     statistics.record_experiment(True, response_time)
+            # else:
+            #     print(f"\033[91m{answer_clean}\033[0m")
+            #     statistics.record_experiment(False, response_time)
+            
+            # TODO: Remove evaluation of questions with match
+            # TODO: Check the boolean param here:
+            statistics.record_experiment(True, response_time)
 
             outputs.append({
                 "question": question,
@@ -263,12 +328,13 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
             )
 
         # Calculate statistics
-        accuracy = round(correct_answers / settings.num_runs_per_question, 2)
+        # TODO: Remove evaluation of questions with match
+        # accuracy = round(correct_answers / settings.num_runs_per_question, 2)
         avg_response_time = round(total_response_time / settings.num_runs_per_question, 3)
         # Insert statistics at the beginning of the outputs list
         outputs.insert(0, {
-            "num_correct": correct_answers,
-            "accuracy": accuracy,
+            # "num_correct": correct_answers, # TODO: Remove evaluation of questions with match
+            # "accuracy": accuracy,
             "averaga_response_time (s)": avg_response_time,
         })
 
