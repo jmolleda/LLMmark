@@ -10,9 +10,7 @@ from .clients.openai_client import OpenAIClient
 from .clients.ollama_client import OllamaClient
 from opik import Opik
 
-
 opik_client = Opik(project_name="LLMmark_response_generation")
-
 
 def open_dataset_folder(settings):
     base_folder = settings.folders['data_folder_name']
@@ -80,15 +78,12 @@ def open_dataset_folder(settings):
     return final_path, final_lang_code
 
 def get_local_models(models):
-    """Devuelve una lista de tuplas (display_name, model_id)."""
     return [(model['display_name'], model['model_id']) for model in models]
 
 def get_online_models(models):
-    """Devuelve una lista de tuplas (display_name, model_id, base_url, api_key, max_requests)."""
     return [(model['display_name'], model['model_id'], model['base_url'], model['api_key'], model['max_requests_per_minute']) for model in models]
 
 def get_questions_from_folder(folder, settings):
-    """Lee todos los ficheros de preguntas de la carpeta dada."""
     questions = []
     prefix = settings.files['question_file_name']
     ext = settings.files['question_file_extension']
@@ -104,7 +99,6 @@ def get_questions_from_folder(folder, settings):
     return questions
 
 def create_run_folder(settings):
-    """Crea una nueva carpeta de ejecución para los resultados del experimento."""
     base_folder = settings.folders['base_experiments_folder']
     os.makedirs(base_folder, exist_ok=True)
     prefix = settings.folders['experiment_folder_name']
@@ -118,7 +112,6 @@ def create_run_folder(settings):
     return run_folder
 
 def get_llm_response(settings, client, model, prompt):
-    """Obtiene la respuesta del LLM según el modo (chat o generate)."""
     if settings.model_mode == 'chat':
         return client.chat(model=model, messages=[{"role": "user", "content": prompt}])
     if settings.model_mode == 'generate':
@@ -126,7 +119,6 @@ def get_llm_response(settings, client, model, prompt):
     return ""
 
 def is_model_installed(model_name: str, ollama_base_url) -> bool:
-    """Comprueba si un modelo de Ollama está instalado localmente."""
     try:
         response = requests.get(f"{ollama_base_url}/api/tags")
         response.raise_for_status()
@@ -137,7 +129,6 @@ def is_model_installed(model_name: str, ollama_base_url) -> bool:
         return False
 
 def pull_model(model_name: str, ollama_base_url) -> None:
-    """Descarga un modelo de Ollama."""
     try:
         response = requests.post(
             f"{ollama_base_url}/api/pull",
@@ -151,7 +142,6 @@ def pull_model(model_name: str, ollama_base_url) -> None:
         print(f"Error pulling model: {e}")
 
 def select_local_model(models, host):
-    """Solicita al usuario que seleccione un modelo local de Ollama."""
     client = OllamaClient(host)
     print("Available Ollama models:")
     for idx, (name, _) in enumerate(models, 1):
@@ -182,7 +172,6 @@ def select_local_model(models, host):
     return selected_model, False, client
 
 def select_online_model(models):
-    """Solicita al usuario que seleccione un modelo online."""
     print("Available online models:")
     for idx, (name, _, _, _, _) in enumerate(models, 1):
         print(f"{idx}. {name}")
@@ -204,7 +193,6 @@ def select_online_model(models):
     return selected_model, False, client
 
 def select_question_type(settings):
-    """Permite al usuario seleccionar el tipo de pregunta a ejecutar."""
     question_types_list = settings.question_types
     if not question_types_list:
         print("No question types defined in the settings file.")
@@ -237,28 +225,29 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
         
         format_args = {
             "question": question,
-            # "example": "Example for S3, S4...",
-            # "info": "Info for D1, D2..."
+            "example": "Example for S3, S4...",
+            "info": "Info for D1, D2..."
         }
-
+        
+        prompting_tech = settings.prompting_technique
+        language = settings.language
+        
+        question_type_key = settings.question_type
+        valid_keys = [list(item.keys())[0] for item in settings.question_types] 
+        if question_type_key not in valid_keys:
+            print(f"Question type '{question_type_key}' not found in settings.")
+            exit(1)
+        
         prompt = prompt_gen.get_prompt(
-            prompt_key="S1",
-            question_type=question_type_key,
+            prompt_key=prompting_tech,
+            question_type=settings.question_type,
             **format_args
         )
         
-        prompting_tech = settings.prompting_technique
-        if prompting_tech not in prompt_gen.opik_prompts:
-            print(f"Prompting technique '{prompting_tech}' not found in prompts.yaml.")
-            exit(1)
-        
-            
-        prompt = prompt_gen.get_prompt(prompt_key=prompting_tech, question_type=question_type_key)
-        
-        print(f"Using prompting technique: \033[92m{prompting_tech}\033[0m")
+        print(f"Using prompting technique: \033[92m{prompting_tech}\033[0m for language: \033[92m{language}\033[0m")
         print(f"Using prompt: \033[92m{prompt}\033[0m")
         
-        print(f"\nUsing prompt: {prompt}")
+     
         outputs = []
         total_response_time = 0
         for run_idx in range(settings.num_runs_per_question):
@@ -343,23 +332,10 @@ def main():
     questions = get_questions_from_folder(folder, settings)
     
     
-    
-
     for model_display_name, model_id in selected_models:
         statistics = Statistics()
 
-
         prompting_tech = settings.prompting_technique
-        if prompting_tech not in prompt_gen.opik_prompts:
-            print(f"Prompting technique '{prompting_tech}' not found in prompts.yaml.")
-            exit(1)
-
-        opik_prompt_obj = prompt_gen.get_opik_prompt_object(prompting_tech)
-        
-        question_type_key = settings.question_type
-        if question_type_key not in settings.question_types:
-            print(f"Question type '{question_type_key}' not found in settings.")
-            exit(1)
         
         trace_metadata = {
             "model_id": model_id,
@@ -370,6 +346,8 @@ def main():
             "num_runs_per_question": settings.num_runs_per_question,
             "model_source": "local" if model_source == 'L' else "online",
         }
+        
+        opik_prompt_obj = prompt_gen.get_opik_prompt_object(prompting_tech)
 
         trace = opik_client.trace(
             name=f"{os.path.basename(run_folder)}_{model_id}",
@@ -378,7 +356,7 @@ def main():
         )
         
         
-        run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, prompt_gen, question_type_key, statistics, trace)
+        run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, prompt_gen, question_type, statistics, trace)
 
         trace.end()
         

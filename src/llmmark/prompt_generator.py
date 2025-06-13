@@ -44,56 +44,47 @@ class PromptGenerator:
 
     def get_prompt(self, prompt_key: str, question_type: str, **kwargs) -> str:
         """
-        Obtiene y combina una plantilla base (por tipo de pregunta) con una 
-        plantilla de técnica (por clave de prompt), y la formatea con los 
-        argumentos proporcionados.
+        Gets a formatted prompt based on the provided key and question type.
+        Combines a technique prompt with a base question prompt, formatting it
+        with the provided arguments.
 
         Args:
-            prompt_key (str): La clave de la técnica de prompting (ej. "S1", "R2").
-            question_type (str): La clave del tipo de pregunta base (ej. "open_answer").
-            **kwargs: Argumentos para formatear el prompt final (ej. question="...", example="...").
+            prompt_key (str): The key of the technique prompt (e.g. "S1", "R2").
+            question_type (str): The key of the base question type (e.g. "open_answer").
+            **kwargs: Arguments to format the final prompt (e.g. question="...", example="...").
 
         Returns:
-            str: El prompt combinado y formateado, listo para el LLM.
+            str: The combined and formatted prompt, ready for the LLM.
         """
+        
+        print(f"------ Generating prompt for key: {prompt_key}, question type: {question_type}, with args: {kwargs}")
+        
         lang = self.settings.language
         
-        # --- Paso 1: Obtener la plantilla de la técnica (ej. S1) ---
         try:
             technique_template = self.prompts_data[lang][prompt_key]
+            
+            print(f"Technique template for {prompt_key} in {lang}: {technique_template}")
+            
         except KeyError:
-            raise ValueError(f"Prompt de técnica con clave '{prompt_key}' para el idioma '{lang}' no encontrado.")
+            raise ValueError(f"Technique prompt with key '{prompt_key}' for language '{lang}' not found.")
 
-        # --- Paso 2: Obtener la plantilla base (ej. open_answer) ---
         try:
-            # El question_type que viene de main.py puede tener un formato como "open_answer_questions"
-            # y en el yaml lo tienes como "open_answer". Lo normalizamos.
-            base_key = question_type.replace('_questions', '')
+            base_key = question_type
             base_prompt_template = self.prompts_data[lang][base_key]
         except KeyError:
-            raise ValueError(f"Prompt base con clave '{base_key}' para el idioma '{lang}' no encontrado.")
+            raise ValueError(f"Base prompt with key '{base_key}' for language '{lang}' not found.")
 
-        # --- Paso 3: Combinar las plantillas ---
-        # La plantilla de técnica (S1, R1, etc.) es la que define la estructura final.
-        # La plantilla base (open_answer) actúa como una instrucción inicial que la envuelve.
-        # Reemplazamos el {question} de la plantilla base con la plantilla de técnica completa.
-        
-        # Verificamos si la plantilla base tiene el placeholder {question} para evitar errores
         if "{question}" in base_prompt_template:
             combined_template = base_prompt_template.replace("{question}", technique_template)
         else:
-            # Si no lo tiene, simplemente las unimos con un espacio.
             combined_template = f"{base_prompt_template} {technique_template}"
 
-        # --- Paso 4: Formatear el prompt final con los datos reales (la pregunta, el ejemplo, etc.) ---
-        # El método .format(**kwargs) reemplazará todos los placeholders que encuentre
-        # en la plantilla combinada (como {question}, {example}, {info}) con los valores
-        # que pases desde main.py.
         try:
             final_prompt = combined_template.format(**kwargs)
         except KeyError as e:
-            print(f"Error de formato: Falta el argumento {e} para el prompt combinado.")
-            print(f"Asegúrate de pasar todos los placeholders necesarios: {kwargs.keys()}")
+            print(f"Format error: {e}")
+            print(f"Make sure to pass all necessary placeholders: {kwargs.keys()}")
             raise
 
         return final_prompt
