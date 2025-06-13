@@ -111,12 +111,11 @@ def create_run_folder(settings):
     print(f"Created run experiment folder: {run_folder}")
     return run_folder
 
-def get_llm_response(settings, client, model, prompt):
-    if settings.model_mode == 'chat':
-        return client.chat(model=model, messages=[{"role": "user", "content": prompt}])
-    if settings.model_mode == 'generate':
-        return client.generate(model=model, prompt=prompt)
-    return ""
+def get_llm_response(settings, client, model, system_prompt, user_prompt):
+    return client.chat(model=model, messages=[
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt}
+    ])
 
 def is_model_installed(model_name: str, ollama_base_url) -> bool:
     try:
@@ -237,15 +236,23 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
         if question_type_key not in valid_keys:
             print(f"Question type '{question_type_key}' not found in settings.")
             exit(1)
+            
+            
+        system_prompt = prompt_gen.get_system_prompt(
+            prompt_key=prompting_tech,
+            question_type=settings.question_type,
+            **format_args
+        )
         
-        prompt = prompt_gen.get_prompt(
+        user_prompt = prompt_gen.get_user_prompt(
             prompt_key=prompting_tech,
             question_type=settings.question_type,
             **format_args
         )
         
         print(f"Using prompting technique: \033[92m{prompting_tech}\033[0m for language: \033[92m{language}\033[0m")
-        print(f"Using prompt: \033[92m{prompt}\033[0m")
+        print(f"- Using system prompt: \033[92m{system_prompt}\033[0m")
+        print(f"- Using user prompt: \033[92m{user_prompt}\033[0m")
         
      
         outputs = []
@@ -261,7 +268,11 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
                 "question_type": settings.question_type
             }
             start_time = time.time()
-            answer = get_llm_response(settings, client, model_id, prompt) or ""
+            
+            
+
+
+            answer = get_llm_response(settings, client, model_id, system_prompt, user_prompt) or ""
             response_time = round(time.time() - start_time, 3)
             total_response_time += response_time
 

@@ -32,59 +32,119 @@ class PromptGenerator:
             for key, template in prompts.items():
                 opik_prompt_name = f"{key}_{lang}"
 
+                # --- INICIO DE LA MODIFICACIÓN ---
+                prompt_text = ""
+                if isinstance(template, dict):
+                    # Combina los prompts de sistema y de usuario si es un diccionario
+                    system_prompt = template.get('system', '')
+                    user_prompt = template.get('user', '')
+                    prompt_text = f"System: {system_prompt}\nUser: {user_prompt}"
+                elif isinstance(template, str):
+                    # Usa la plantilla directamente si es una cadena
+                    prompt_text = template
+                else:
+                    # Opcional: manejar otros tipos o mostrar un aviso
+                    print(f"Skipping prompt '{key}' in language '{lang}' due to unexpected format: {type(template)}")
+                    continue
+                # --- FIN DE LA MODIFICACIÓN ---
+
                 # Opik prompt object
                 opik_prompt_obj = opik.Prompt(
                     name=opik_prompt_name,
-                    prompt=template
+                    prompt=prompt_text  # <- Pasa la cadena de texto procesada
                 )
                 self.opik_prompts[opik_prompt_name] = opik_prompt_obj
         print("✅ Registration complete.")
-
-    # Dentro de tu clase PromptGenerator en prompt_generator.py
-
-    def get_prompt(self, prompt_key: str, question_type: str, **kwargs) -> str:
+        
+        
+    def get_system_prompt(self, prompt_key: str, question_type: str, **kwargs) -> str:
         """
-        Gets a formatted prompt based on the provided key and question type.
-        Combines a technique prompt with a base question prompt, formatting it
-        with the provided arguments.
+        Gets a formatted system prompt based on the provided key and question type.
+        It combines a base question prompt with a technique's system prompt,
+        then formats it with the provided arguments.
 
         Args:
-            prompt_key (str): The key of the technique prompt (e.g. "S1", "R2").
-            question_type (str): The key of the base question type (e.g. "open_answer").
-            **kwargs: Arguments to format the final prompt (e.g. question="...", example="...").
+            prompt_key (str): The key of the technique prompt (e.g., "S1", "R2").
+            question_type (str): The key of the base question type (e.g., "open_answer").
+            **kwargs: Arguments to format the final prompt (e.g., question="...", example="...").
 
         Returns:
-            str: The combined and formatted prompt, ready for the LLM.
+            str: The combined and formatted system prompt, ready for the LLM.
         """
         
-        print(f"------ Generating prompt for key: {prompt_key}, question type: {question_type}, with args: {kwargs}")
+        print(f"------ Generating system prompt for key: {prompt_key}, question type: {question_type} ------")
         
         lang = self.settings.language
         
+        # Get the system part from the technique prompt (e.g., S1, S2)
         try:
-            technique_template = self.prompts_data[lang][prompt_key]
+            technique_system_prompt = self.prompts_data[lang][prompt_key].get('system', '')
+            if not isinstance(technique_system_prompt, str):
+                raise TypeError("The 'system' part of the technique prompt is not a string.")
+        except (KeyError, AttributeError):
+            raise ValueError(f"Technique prompt with key '{prompt_key}' for language '{lang}' not found or is not a dictionary.")
+
+        # Get the base prompt (e.g., open_answer)
+        try:
+            base_prompt_template = self.prompts_data[lang][question_type]
             
-            print(f"Technique template for {prompt_key} in {lang}: {technique_template}")
-            
+            # Handle if the base prompt is a dictionary or a simple string
+            if isinstance(base_prompt_template, dict):
+                # If it's a dict, get the 'system' part, or an empty string if it doesn't exist
+                base_prompt_template = base_prompt_template.get("system", "")
+            elif not isinstance(base_prompt_template, str):
+                raise ValueError(f"Base prompt with key '{question_type}' for language '{lang}' has an invalid format.")
+                
         except KeyError:
-            raise ValueError(f"Technique prompt with key '{prompt_key}' for language '{lang}' not found.")
+            raise ValueError(f"Base prompt with key '{question_type}' for language '{lang}' not found.")
+
+        # Combine the base prompt and the technique's system prompt
+        combined_template = f"{base_prompt_template} {technique_system_prompt}".strip()
 
         try:
-            base_key = question_type
-            base_prompt_template = self.prompts_data[lang][base_key]
-        except KeyError:
-            raise ValueError(f"Base prompt with key '{base_key}' for language '{lang}' not found.")
-
-        if "{question}" in base_prompt_template:
-            combined_template = base_prompt_template.replace("{question}", technique_template)
-        else:
-            combined_template = f"{base_prompt_template} {technique_template}"
-
-        try:
+            # Format the final combined prompt with the provided arguments
             final_prompt = combined_template.format(**kwargs)
         except KeyError as e:
-            print(f"Format error: {e}")
-            print(f"Make sure to pass all necessary placeholders: {kwargs.keys()}")
+            print(f"Formatting error in system prompt: Missing placeholder {e}")
+            print(f"Available placeholders: {kwargs.keys()}")
+            raise
+
+        return final_prompt
+
+
+    def get_user_prompt(self, prompt_key: str, question_type: str, **kwargs) -> str:
+        """
+        Gets a formatted user prompt based on the provided key.
+        The user prompt is primarily defined by the 'user' part of the technique prompt.
+        The 'question_type' is ignored here as it mainly affects the system prompt.
+
+        Args:
+            prompt_key (str): The key of the technique prompt (e.g., "S1", "R2").
+            question_type (str): The key of the base question type (ignored in this implementation).
+            **kwargs: Arguments to format the final prompt (e.g., question="...").
+
+        Returns:
+            str: The formatted user prompt, ready for the LLM.
+        """
+        
+        print(f"------ Generating user prompt for key: {prompt_key} ------")
+        
+        lang = self.settings.language
+        
+        # The user prompt is determined by the 'user' part of the technique prompt (e.g., S1, R2)
+        try:
+            user_prompt_template = self.prompts_data[lang][prompt_key]['user']
+            if not isinstance(user_prompt_template, str):
+                raise TypeError("The 'user' part of the technique prompt is not a string.")
+        except (KeyError, AttributeError):
+            raise ValueError(f"Technique prompt with key '{prompt_key}' for language '{lang}' not found or does not contain a 'user' key.")
+
+        try:
+            # Format the final prompt with the provided arguments
+            final_prompt = user_prompt_template.format(**kwargs)
+        except KeyError as e:
+            print(f"Formatting error in user prompt: Missing placeholder {e}")
+            print(f"Available placeholders: {kwargs.keys()}")
             raise
 
         return final_prompt
