@@ -71,4 +71,18 @@ evaluation_output_file: "evaluation_output.json"
 # en: English and es: Spanish
 language: "en"
 
+# Valid prompting techniques:
+prompting_techniques:
+  - S1: "Standard, Zero-shot and Task-Oriented"
+  - S2: "Standard, Zero-shot and Role-Oriented"
+  - S3: "Standard, Few-shot and Task-Oriented"
+  - S4: "Standard, Few-shot and Role-Oriented"
+  - R1: "Reasoning, Zero-shot and Task-Oriented"
+  - R2: "Reasoning, Zero-shot and Role-Oriented"
+  - R3: "Reasoning, Few-shot and Role-Oriented"
+  - R4: "Reasoning, Few-shot and Task-Oriented"
+  - D1: "Definition-based, Zero-shot and Task-Oriented"
+  - D2: "Definition-based, Zero-shot and Role-Oriented"
+  - D3: "Definition-based, Few-shot and Role-Oriented"
+  - D4: "Definition-based, Few-shot and Task-Oriented"
 prompting_technique: "S1"
