@@ -15,6 +15,15 @@ class PromptGenerator:
         self._register_prompts_in_opik()
 
     def _load_prompts_from_yaml(self) -> dict:
+        """
+        Loads prompts from a YAML file.
+
+        Raises:
+            FileNotFoundError: If the prompts file is not found.
+
+        Returns:
+            dict: The loaded prompts data.
+        """
         if not self.prompts_path.exists():
             raise FileNotFoundError(f"Prompt file not found: {self.prompts_path}")
         
@@ -25,6 +34,8 @@ class PromptGenerator:
         """
         Iterates over the loaded prompts and registers them in Opik,
         storing the resulting objects.
+        Raises:
+            ValueError: If a prompt has an unexpected format.
         """
         print("Registering prompts in the Opik library...")
         # Iterates over all languages and prompts defined in the YAML
@@ -32,26 +43,22 @@ class PromptGenerator:
             for key, template in prompts.items():
                 opik_prompt_name = f"{key}_{lang}"
 
-                # --- INICIO DE LA MODIFICACIÓN ---
                 prompt_text = ""
                 if isinstance(template, dict):
-                    # Combina los prompts de sistema y de usuario si es un diccionario
                     system_prompt = template.get('system', '')
                     user_prompt = template.get('user', '')
+                    # Unify system and user prompts into a single prompt text
                     prompt_text = f"System: {system_prompt}\nUser: {user_prompt}"
                 elif isinstance(template, str):
-                    # Usa la plantilla directamente si es una cadena
                     prompt_text = template
                 else:
-                    # Opcional: manejar otros tipos o mostrar un aviso
                     print(f"Skipping prompt '{key}' in language '{lang}' due to unexpected format: {type(template)}")
                     continue
-                # --- FIN DE LA MODIFICACIÓN ---
 
                 # Opik prompt object
                 opik_prompt_obj = opik.Prompt(
                     name=opik_prompt_name,
-                    prompt=prompt_text  # <- Pasa la cadena de texto procesada
+                    prompt=prompt_text
                 )
                 self.opik_prompts[opik_prompt_name] = opik_prompt_obj
         print("✅ Registration complete.")
@@ -65,18 +72,18 @@ class PromptGenerator:
 
         Args:
             prompt_key (str): The key of the technique prompt (e.g., "S1", "R2").
-            question_type (str): The key of the base question type (e.g., "open_answer").
+            question_type (str): The key of the base question type (e.g.,"open_answer" or "multiple_choice").
             **kwargs: Arguments to format the final prompt (e.g., question="...", example="...").
 
         Returns:
-            str: The combined and formatted system prompt, ready for the LLM.
+            str: The combined and formatted system prompt.
         """
         
         print(f"------ Generating system prompt for key: {prompt_key}, question type: {question_type} ------")
         
         lang = self.settings.language
         
-        # Get the system part from the technique prompt (e.g., S1, S2)
+        # System prompt
         try:
             technique_system_prompt = self.prompts_data[lang][prompt_key].get('system', '')
             if not isinstance(technique_system_prompt, str):
@@ -84,7 +91,7 @@ class PromptGenerator:
         except (KeyError, AttributeError):
             raise ValueError(f"Technique prompt with key '{prompt_key}' for language '{lang}' not found or is not a dictionary.")
 
-        # Get the base prompt (e.g., open_answer)
+        # Base prompt
         try:
             base_prompt_template = self.prompts_data[lang][question_type]
             
@@ -112,19 +119,17 @@ class PromptGenerator:
         return final_prompt
 
 
-    def get_user_prompt(self, prompt_key: str, question_type: str, **kwargs) -> str:
+    def get_user_prompt(self, prompt_key: str, **kwargs) -> str:
         """
         Gets a formatted user prompt based on the provided key.
         The user prompt is primarily defined by the 'user' part of the technique prompt.
-        The 'question_type' is ignored here as it mainly affects the system prompt.
 
         Args:
             prompt_key (str): The key of the technique prompt (e.g., "S1", "R2").
-            question_type (str): The key of the base question type (ignored in this implementation).
             **kwargs: Arguments to format the final prompt (e.g., question="...").
 
         Returns:
-            str: The formatted user prompt, ready for the LLM.
+            str: The formatted user prompt
         """
         
         print(f"------ Generating user prompt for key: {prompt_key} ------")

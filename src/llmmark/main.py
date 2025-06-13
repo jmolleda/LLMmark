@@ -13,6 +13,14 @@ from opik import Opik
 opik_client = Opik(project_name="LLMmark_response_generation")
 
 def open_dataset_folder(settings):
+    """Open the dataset folder based on the settings.
+
+    Args:
+        settings (Settings): The settings object containing configuration.
+
+    Returns:
+        tuple: The path to the selected folder and the language code.
+    """
     base_folder = settings.folders['data_folder_name']
     base_folder = os.path.join(base_folder, settings.question_type)
     
@@ -78,12 +86,37 @@ def open_dataset_folder(settings):
     return final_path, final_lang_code
 
 def get_local_models(models):
+    """Get local model IDs and display names.
+
+    Args:
+        models (list): List of model dictionaries.
+
+    Returns:
+        list: A list of tuples containing display names and model IDs.
+    """
     return [(model['display_name'], model['model_id']) for model in models]
 
 def get_online_models(models):
+    """Get online model IDs and their details.
+
+    Args:
+        models (list): List of model dictionaries.
+
+    Returns:
+        list: A list of tuples containing display names, model IDs, base URLs, API keys, and max requests per minute.
+    """
     return [(model['display_name'], model['model_id'], model['base_url'], model['api_key'], model['max_requests_per_minute']) for model in models]
 
 def get_questions_from_folder(folder, settings):
+    """Get questions from a folder based on the settings.
+
+    Args:
+        folder (str): The path to the folder containing question files.
+        settings (Settings): The settings object containing configuration.
+
+    Returns:
+        list: A list of tuples containing the filename and file content.
+    """
     questions = []
     prefix = settings.files['question_file_name']
     ext = settings.files['question_file_extension']
@@ -99,6 +132,14 @@ def get_questions_from_folder(folder, settings):
     return questions
 
 def create_run_folder(settings):
+    """Creates a new run folder for experiments.
+
+    Args:
+        settings (Settings): The settings object containing configuration.
+
+    Returns:
+        str: The path to the created run folder.
+    """
     base_folder = settings.folders['base_experiments_folder']
     os.makedirs(base_folder, exist_ok=True)
     prefix = settings.folders['experiment_folder_name']
@@ -112,12 +153,31 @@ def create_run_folder(settings):
     return run_folder
 
 def get_llm_response(settings, client, model, system_prompt, user_prompt):
+    """Gets the response from the LLM.
+
+    Args:
+        settings (Settings): The settings object containing configuration.
+        client (OllamaClient): The client instance for making requests.
+        model (str): The model ID to use for the request.
+        system_prompt (str): The system prompt to provide context.
+        user_prompt (str): The user prompt containing the question.
+
+    Returns:
+        dict: The response from the LLM.
+    """
     return client.chat(model=model, messages=[
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt}
     ])
 
 def is_model_installed(model_name: str, ollama_base_url) -> bool:
+    """Check if a model is installed in Ollama.
+    Args:
+        model_name (str): The name of the model to check.
+        ollama_base_url (str): The base URL of the Ollama server.
+    Returns:
+        bool: True if the model is installed, False otherwise.
+    """
     try:
         response = requests.get(f"{ollama_base_url}/api/tags")
         response.raise_for_status()
@@ -128,6 +188,12 @@ def is_model_installed(model_name: str, ollama_base_url) -> bool:
         return False
 
 def pull_model(model_name: str, ollama_base_url) -> None:
+    """Pulls a model from the Ollama server.
+
+    Args:
+        model_name (str): The name of the model to pull.
+        ollama_base_url (str): The base URL of the Ollama server.
+    """
     try:
         response = requests.post(
             f"{ollama_base_url}/api/pull",
@@ -141,6 +207,15 @@ def pull_model(model_name: str, ollama_base_url) -> None:
         print(f"Error pulling model: {e}")
 
 def select_local_model(models, host):
+    """Select a local model for inference.
+
+    Args:
+        models (list): List of available models.
+        host (str): The host URL for the Ollama client.
+
+    Returns:
+        tuple: The selected model ID and the client instance.
+    """
     client = OllamaClient(host)
     print("Available Ollama models:")
     for idx, (name, _) in enumerate(models, 1):
@@ -171,6 +246,14 @@ def select_local_model(models, host):
     return selected_model, False, client
 
 def select_online_model(models):
+    """Select an online model for inference.
+
+    Args:
+        models (list): List of available online models.
+
+    Returns:
+        tuple: The selected model ID and the client instance.
+    """
     print("Available online models:")
     for idx, (name, _, _, _, _) in enumerate(models, 1):
         print(f"{idx}. {name}")
@@ -192,6 +275,14 @@ def select_online_model(models):
     return selected_model, False, client
 
 def select_question_type(settings):
+    """Selects the question type to use for inference.
+
+    Args:
+        settings (Settings): The settings object containing configuration.
+
+    Returns:
+        str: The selected question type key.
+    """
     question_types_list = settings.question_types
     if not question_types_list:
         print("No question types defined in the settings file.")
@@ -212,6 +303,20 @@ def select_question_type(settings):
     return selected_type_key
 
 def run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, prompt_gen, question_type_key, statistics, trace):
+    """Runs a series of questions against a specified model.
+
+    Args:
+        model_display_name (str): The display name of the model.
+        model_id (str): The ID of the model.
+        questions (list): A list of tuples containing question filenames and their content.
+        settings (Settings): The settings object containing configuration.
+        client (OllamaClient): The client instance for making requests.
+        run_folder (str): The path to the folder for saving run results.
+        prompt_gen (PromptGenerator): The prompt generator instance.
+        question_type_key (str): The key for the question type to use.
+        statistics (dict): A dictionary to store statistics about the runs.
+        trace (list): A list to store traces of the runs.
+    """
     print(f"\n\033[92m=== Running questions for model: {model_display_name} ({model_id}) ===\033[0m")
     model_run_folder = os.path.join(run_folder, model_id.replace("/", "_")) # Sanitize model_id for folder name
     os.makedirs(model_run_folder, exist_ok=True)
@@ -246,7 +351,6 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
         
         user_prompt = prompt_gen.get_user_prompt(
             prompt_key=prompting_tech,
-            question_type=settings.question_type,
             **format_args
         )
         
@@ -269,9 +373,6 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
             }
             start_time = time.time()
             
-            
-
-
             answer = get_llm_response(settings, client, model_id, system_prompt, user_prompt) or ""
             response_time = round(time.time() - start_time, 3)
             total_response_time += response_time
@@ -308,20 +409,20 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
 def main():
     settings = Settings()
     
+    # Question type selection
     question_type = select_question_type(settings)
     settings.question_type = question_type
     
-    
+    # Language selection
     folder, selected_language = open_dataset_folder(settings)
-    
     
     settings.language = selected_language
     print(f"Language for this run set to: \033[92m{settings.language}\033[0m")
 
-    
+    # Prompt generator to create prompts
     prompt_gen = PromptGenerator(settings=settings)
-    
-    
+
+    # Model source selection
     model_source = input("Do you want to run [l]ocal models or (o)nline models? (default: local): ").strip().upper()
     if model_source not in ['L', 'O', ''] or model_source == '': model_source = 'L'
     
