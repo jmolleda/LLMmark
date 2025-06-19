@@ -93,21 +93,8 @@ def main():
     if not api_key:
         raise EnvironmentError(f"API key environment variable '{settings.api_key_env_var}' not set.")
     
-    # with open("./settings/config.yaml", "r") as file:
-    #     data = yaml.safe_load(file)
-    #     model = next((m for m in data["openai_models"] if m["model_id"] == settings.model_name), None)
-    #     max_requests_per_minute = model['max_requests_per_minute']
-    #     print(f"\nSelected model: \033[92m{model['display_name']}\033[0m")
-    #     print(f"Max requests per minute: {max_requests_per_minute}")
-
     models = get_online_models(settings.openai_models)
     selected_model = next((m for m in models if m[1] == settings.model_name), None)
-
-
-    
-    # base_url = models[selected_model][2]
-    # api_key = os.environ.get(models[selected_model][3])
-    # max_requests_per_minute = models[selected_model][4]
 
 
     if selected_model:

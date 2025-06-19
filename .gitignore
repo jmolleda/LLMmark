@@ -1,6 +1,5 @@
 # Dataset
 data/*
-!data/questions
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

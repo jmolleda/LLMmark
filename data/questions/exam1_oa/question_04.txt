@@ -1,3 +1,0 @@
-What is the representation of the number 11111010001b in hexadecimal?
-
-<7D1>

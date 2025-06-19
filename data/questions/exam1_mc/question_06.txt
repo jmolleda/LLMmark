@@ -1,9 +1,0 @@
-What is the representation of the number 0.8125 in binary?
-[a] 110.1b
-[b] 11.01b
-[c] 0.8125b
-[d] 0.1101b
-[e] 0.0011b
-[f] 1.0110b
-
-<d>

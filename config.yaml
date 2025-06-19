@@ -41,29 +41,17 @@ openai_models:
     max_requests_per_minute: 15
 
 # Valid question_types:
-# - open_answer
-# - multiple_choice
-question_type: "open_answer"
+question_types: 
+  - open_answer: "Open Answer"
+  - multiple_choice: "Multiple Choice"
 
 # Valid model modes
 # - chat
 # - generate
 model_mode: "chat"
 
-prompts:
-  open_answer_questions: |
-    You are an AI assistant that provides concise and direct answers.
-    Answer the following question without explanation or reasoning.
-    Give only the specific answer.
-
-  multiple_choice_questions: |
-    You are an AI assistant that answers multiple-choice questions.
-    You must respond with exactly one of the following options: [a], [b], [c], [d], [e], or [f].
-    Your response must match the format of the options exactly, including brackets and lowercase letters.
-    Do not include any explanation, commentary, or additional text—only the selected option.
-
 folders:
-  data_folder_name: "../data/questions/exam1_oa"
+  data_folder_name: "../data/questions"
   base_experiments_folder: "../data/runs"
   experiment_folder_name: "run_"
 
@@ -73,3 +61,28 @@ files:
   stats_file_name: "stats.json"
 
 num_runs_per_question: 10
+
+experiments_folder: "../data/runs"
+question_file_prefix: "question_"
+api_key_env_var: "OPENAI_API_KEY"
+model_name: "gemini-2.0-flash"
+evaluation_output_file: "evaluation_output.json"
+
+# en: English and es: Spanish
+language: "en"
+
+# Valid prompting techniques:
+prompting_techniques:
+  - S1: "Standard, Zero-shot and Task-Oriented"
+  - S2: "Standard, Zero-shot and Role-Oriented"
+  - S3: "Standard, Few-shot and Task-Oriented"
+  - S4: "Standard, Few-shot and Role-Oriented"
+  - R1: "Reasoning, Zero-shot and Task-Oriented"
+  - R2: "Reasoning, Zero-shot and Role-Oriented"
+  - R3: "Reasoning, Few-shot and Role-Oriented"
+  - R4: "Reasoning, Few-shot and Task-Oriented"
+  - D1: "Definition-based, Zero-shot and Task-Oriented"
+  - D2: "Definition-based, Zero-shot and Role-Oriented"
+  - D3: "Definition-based, Few-shot and Role-Oriented"
+  - D4: "Definition-based, Few-shot and Task-Oriented"
+prompting_technique: "S1"
