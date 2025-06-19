@@ -41,14 +41,14 @@ en:
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content."
     user: "Lets think step by step about the question and provide a detailed answer including all the necessary steps and reasoning. Answer the following question: {question}"
 
-  # R3: Reasoning, Few-shot and Role-Oriented
+  # R3: Reasoning, Few-shot and Task-Oriented
   R3: 
-    system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content."
+    system: ""
     user: "Given the following example: {example}, lets think step by step about the question and provide a detailed answer including all the necessary steps and reasoning. Answer the following question: {question}"
 
-  # R4: Reasoning, Few-shot and Task-Oriented
+  # R4: Reasoning, Few-shot and Role-Oriented
   R4: 
-    system: ""
+    system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content."
     user: "Given the following example: {example}, lets think step by step about the question and provide a detailed answer including all the necessary steps and reasoning. Answer the following question: {question}"
 
   # Definition-based prompts
@@ -62,15 +62,16 @@ en:
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students."
     user: "Considering this information: {info}, provide an answer to the following question. Question: {question}"
 
-  # D3: Definition-based, Few-shot and Role-Oriented
+  # D3: Definition-based, Few-shot and Task-Oriented
   D3: 
+    system: ""
+    user: "Given the following example: {example} and considering this information: {info}, provide an answer to the following question. Question: {question}"
+
+  # D4: Definition-based, Few-shot and Role-Oriented
+  D4: 
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students."
     user: "Given the following example: {example}, considering this information: {info}, provide an answer to the following question. Question: {question}"
 
-  # D4: Definition-based, Few-shot and Task-Oriented
-  D4: 
-    system: ""
-    user: "Given the following example: {example} and considering this information: {info}, provide an answer to the following question. Question: {question}"
 
 
 es:
@@ -114,14 +115,14 @@ es:
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería. Tu tarea es responder a la pregunta de un estudiante sobre el contenido del curso."
     user: "Pensemos paso a paso sobre la pregunta y proporcionemos una respuesta detallada incluyendo todos los pasos y razonamientos necesarios. Responde a la siguiente pregunta: {question}"
 
-  # R3: Reasoning, Few-shot and Role-Oriented
+  # R3: Reasoning, Few-shot and Task-Oriented
   R3: 
-    system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería."
+    system: ""
     user: "Dado el siguiente ejemplo: {example}, pensemos paso a paso sobre la pregunta y proporcionemos una respuesta detallada incluyendo todos los pasos y razonamientos necesarios. Responde a la siguiente pregunta: {question}"
 
-  # R4: Reasoning, Few-shot and Task-Oriented
+  # R4: Reasoning, Few-shot and Role-Oriented
   R4: 
-    system: ""
+    system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería."
     user: "Dado el siguiente ejemplo: {example}, pensemos paso a paso sobre la pregunta y proporcionemos una respuesta detallada incluyendo todos los pasos y razonamientos necesarios. Responde a la siguiente pregunta: {question}"
 
   # Definition-based prompts
@@ -135,13 +136,13 @@ es:
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería."
     user: "Considerando esta información: {info}, proporciona una respuesta a la siguiente pregunta. Pregunta: {question}"
 
-  # D3: Definition-based, Few-shot and Role-Oriented
+  # D3: Definition-based, Few-shot and Task-Oriented
   D3: 
-    system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería."
+    system: ""
     user: "Dado el siguiente ejemplo: {example}, considerando esta información: {info}, proporciona una respuesta a la siguiente pregunta. Pregunta: {question}"
 
-  # D4: Definition-based, Few-shot and Task-Oriented
+  # D4: Definition-based, Few-shot and Role-Oriented
   D4: 
-    system: ""
+    system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería."
     user: "Dado el siguiente ejemplo: {example}, considerando esta información: {info}, proporciona una respuesta a la siguiente pregunta. Pregunta: {question}"
 
