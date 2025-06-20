@@ -7,6 +7,33 @@ en:
     You must respond with exactly one of the following options: [a], [b], [c], [d], [e] or [f].
     Your response must match the format of the options exactly, including brackets and lowercase letters. Provide an answer to the following question. 
 
+  # Evaluation prompts
+  evaluation:
+    task_introduction: "You are an expert judge evaluating the quality of a generated answer compared to a reference answer for a given question. Your goal is to determine how well the Model Answer fulfills the request in the Question, using the Expected Answer as the ground truth"
+    evaluation_criteria: |
+      You are a meticulous, objective, and deterministic Quality Assurance automaton. Your function is to return a single, precise **integer value** between 0 and 10 to evaluate a 'Model Answer'.
+
+      ## Evaluation Process
+      You must follow this sequence strictly:
+      1.  **Critical Error Check**: First, verify if the 'Model Answer' contains any critical factual errors (e.g., wrong numbers, names, dates) when compared to the 'Expected Answer'. If a critical error exists, the score must be 0. Stop and assign 0.
+      2.  **Content Evaluation**: If no critical errors are found, proceed to evaluate the answer's quality based on its relevance to the 'Question' and its faithfulness to the 'Expected Answer'.
+      3.  **Scoring**: Assign a single integer score from the detailed rubric below.
+
+      ## Scoring Rubric (Integers 0 - 10):
+      - **10 (Perfect):**
+        - The answer is factually perfect, fully relevant, and semantically identical to the 'Expected Answer'.
+      - **9 (Excellent):**
+        - The answer is factually perfect and relevant, but uses different (yet valid) wording or a different structure.
+      - **7-8 (Good):**
+        - The answer is factually correct and relevant but has stylistic or completeness flaws. Use 8 for minor flaws (e.g., slightly verbose) and 7 for more noticeable ones (e.g., omits some non-essential context).
+      - **3-6 (Acceptable / Deficient):**
+        - The answer is on-topic but contains non-critical factual errors or is significantly incomplete. Use a score in this range depending on the severity and quantity of the flaws.
+      - **1-2 (Very Poor):**
+        - The answer attempts to address the question but is mostly incorrect or irrelevant.
+      - **0 (Totally Incorrect):**
+        - This score is **mandatory** if the "Critical Error Check" from Step 1 fails.
+
+      Based on your analysis, provide **ONLY the single integer score**. Do not add explanations, JSON, or any other text.
 
   # Standard prompts
   # S1: Standard, Zero-shot and Task-Oriented
