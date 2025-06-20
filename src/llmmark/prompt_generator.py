@@ -41,8 +41,25 @@ class PromptGenerator:
         # Iterates over all languages and prompts defined in the YAML
         for lang, prompts in self.prompts_data.items():
             for key, template in prompts.items():
-                opik_prompt_name = f"{key}_{lang}"
+                if key == 'evaluation' and isinstance(template, dict):
+                    for sub_key, sub_template in template.items():
+                        opik_prompt_name = f"{key}_{sub_key}_{lang}"
+                        if isinstance(sub_template, str):
+                            prompt_text = sub_template
+                        else:
+                            print(f"Skipping prompt '{sub_key}' in '{key}' for language '{lang}' due to unexpected format: {type(sub_template)}")
+                            continue
+                        
+                        # Opik prompt object
+                        opik_prompt_obj = opik.Prompt(
+                            name=opik_prompt_name,
+                            prompt=prompt_text
+                        )
+                        self.opik_prompts[opik_prompt_name] = opik_prompt_obj
+                    continue
+                
 
+                opik_prompt_name = f"{key}_{lang}"
                 prompt_text = ""
                 if isinstance(template, dict):
                     system_prompt = template.get('system', '')
@@ -61,8 +78,8 @@ class PromptGenerator:
                     prompt=prompt_text
                 )
                 self.opik_prompts[opik_prompt_name] = opik_prompt_obj
+
         print("✅ Registration complete.")
-        
         
     def get_system_prompt(self, prompt_key: str, question_type: str, **kwargs) -> str:
         """
@@ -153,6 +170,50 @@ class PromptGenerator:
             raise
 
         return final_prompt
+    
+    
+    def get_evaluation_prompts(self) -> dict:
+        """
+        Gets a dictionary of evaluation prompts based on the provided key and question type.
+        It combines a base question prompt with a technique's system prompt and user prompt,
+        then formats them with the provided arguments.
+
+        Args:
+            prompt_key (str): The key of the technique prompt (e.g., "S1", "R2").
+            question_type (str): The key of the base question type (e.g.,"open_answer" or "multiple_choice").
+            **kwargs: Arguments to format the final prompts (e.g., question="...", example="...").
+
+        Returns:
+            dict: A dictionary containing 'system' and 'user' prompts.
+        """
+        
+        print(f"------ Generating evaluation prompts for evaluation ------")
+        
+        # Evaluation language is always English to be consistent and realiable
+        lang = 'en'
+        task_intro = 'task_introduction'
+        eval_criteria = 'evaluation_criteria'
+        
+        eval_prompts = {}
+        
+        try:
+            task_prompt_template = self.prompts_data[lang]['evaluation'][task_intro]
+            if not isinstance(task_prompt_template, str):
+                raise TypeError("The 'task_introduction' part of the technique prompt is not a string.")
+        except (KeyError, AttributeError):
+            raise ValueError(f"Evaluation task intro for language '{lang}' not found or does not contain a 'task_introduction' key.")
+        
+        try:
+            eval_prompt_template = self.prompts_data[lang]['evaluation'][eval_criteria]
+            if not isinstance(eval_prompt_template, str):
+                raise TypeError("The 'evaluation_criteria' part of the technique prompt is not a string.")
+        except (KeyError, AttributeError):
+            raise ValueError(f"Evaluation criteria for language '{lang}' not found or does not contain a 'evaluation_criteria' key.")
+
+        eval_prompts['task_introduction'] = task_prompt_template
+        eval_prompts['evaluation_criteria'] = eval_prompt_template
+
+        return eval_prompts
 
     def get_opik_prompt_object(self, prompt_key: str) -> opik.Prompt:
         """

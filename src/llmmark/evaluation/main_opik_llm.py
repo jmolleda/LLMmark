@@ -1,7 +1,9 @@
 import os
 import json
 import time
+import yaml
 from collections import defaultdict
+from llmmark.prompt_generator import PromptGenerator
 from ..settings import Settings
 from rouge_score import rouge_scorer
 from opik import Opik
@@ -46,24 +48,24 @@ def check_contains(generated_text: str, required_phrases: list[str], case_sensit
         "contains_percentage": percentage,
         "all_contained": bool(all_contained)
     }
+    
+def load_prompts(file_path='prompts.yaml'):
+    with open(file_path, 'r') as f:
+        return yaml.safe_load(f)
+    
 
-def calculate_geval(model_output: str, expected_answer: str, question: str) -> dict:
+def calculate_geval(model_output: str, expected_answer: str, question: str, prompt_gen: PromptGenerator) -> dict:
     # Quota limits for gemini
     # time.sleep(15)
     try:
         # Gemini 2.0 flash lite as model for LLM-as-a-judge
         eval_llm = LiteLLMChatModel(model_name="gemini/gemini-2.0-flash-lite")
+        eval_prompts = prompt_gen.get_evaluation_prompts()
 
         metric = GEval(
             model=eval_llm,
-            task_introduction="You are an expert judge evaluating the quality of a generated answer compared to a reference answer for a given question.",
-            evaluation_criteria="""
-                Evaluate the overall quality of the 'Model Answer' compared to the 'Expected Answer'.
-                Consider both faithfulness (is it factually correct according to the expected answer?) and relevance (does it directly answer the 'Question'?).
-
-                Provide a single integer score from 0 to 10, where 0 is completely incorrect/irrelevant and 10 is perfectly correct and relevant.
-                DO NOT provide any other text, explanation, or JSON formatting. Only the integer score.
-            """
+            task_introduction=eval_prompts['task_introduction'],
+            evaluation_criteria=eval_prompts['evaluation_criteria']
         )
 
         geval_input = f"""
@@ -73,6 +75,9 @@ def calculate_geval(model_output: str, expected_answer: str, question: str) -> d
         """
         
         score_result = metric.score(output=geval_input)
+        
+        
+        print("----------------- SCORE RESULT", score_result)
         
         if score_result is None:
             raise ValueError("GEval metric.score() returned None.")
@@ -152,6 +157,8 @@ def select_model(selected_run, run_path):
 
 def main():
     settings = Settings()
+    
+    prompt_gen = PromptGenerator(settings=settings)
 
     selected_run, run_path = select_run(settings)
     if not selected_run:
@@ -195,7 +202,7 @@ def main():
 
                 rouge_scores = calculate_rouge(model_output, expected_answer)
                 contains_results = check_contains(model_output, required_phrases_for_contains)
-                geval_scores = calculate_geval(model_output, expected_answer, question)
+                geval_scores = calculate_geval(model_output, expected_answer, question, prompt_gen)
 
                 span_output = {**rouge_scores, **contains_results, **geval_scores}
 
@@ -229,7 +236,7 @@ def main():
                     "reason": geval_scores.get('geval_reason', '')
                 })
 
-                # 3. Log the scores to the span
+                # Log the scores to the span
                 opik_client.log_spans_feedback_scores(scores=scores_to_log)
 
                 print(f"   Run {run_idx}:")
@@ -243,7 +250,7 @@ def main():
                 if "all_contained" in contains_results:
                     print(f"         \033[92mAll Contained:\033[0m {bool(contains_results['all_contained'])}")
                 print("     --- GEval Score ---")
-                print(f"         \033[92mGEval Score:\033[0m {geval_scores['geval_score']:.4f}")
+                print(f"         \033[92mGEval Score:\033[0m {geval_scores['geval_score']:.1f}")
                 print(f"         \033[92mGEval Reason:\033[0m {geval_scores['geval_reason']}")
 
 
