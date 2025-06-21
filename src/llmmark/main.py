@@ -469,7 +469,8 @@ def main():
         trace = opik_client.trace(
             name=f"{os.path.basename(run_folder)}_{model_id}",
             metadata=trace_metadata,
-            prompt=opik_prompt_obj
+            prompt=opik_prompt_obj,
+            tags={settings.question_type, settings.language, prompting_tech, "local" if model_source == 'L' else "online", model_id}
         )
         
         
