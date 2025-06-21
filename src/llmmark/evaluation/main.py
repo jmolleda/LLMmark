@@ -76,9 +76,6 @@ def calculate_geval(model_output: str, expected_answer: str, question: str, prom
         
         score_result = metric.score(output=geval_input)
         
-        
-        print("----------------- SCORE RESULT", score_result)
-        
         if score_result is None:
             raise ValueError("GEval metric.score() returned None.")
 

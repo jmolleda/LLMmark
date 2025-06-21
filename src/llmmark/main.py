@@ -19,7 +19,7 @@ def open_dataset_folder(settings):
         settings (Settings): The settings object containing configuration.
 
     Returns:
-        tuple: The path to the selected folder and the language code.
+        tuple: The path to the selected folder, the language code and the selected folder path.
     """
     base_folder = settings.folders['data_folder_name']
     base_folder = os.path.join(base_folder, settings.question_type)
@@ -83,7 +83,7 @@ def open_dataset_folder(settings):
     
     print(f"Selected language: \033[92m{potential_languages[final_lang_code]}\033[0m")
     
-    return final_path, final_lang_code
+    return final_path, final_lang_code, selected_folder_path
 
 def get_local_models(models):
     """Get local model IDs and display names.
@@ -302,7 +302,7 @@ def select_question_type(settings):
     print(f"Question type selected: \033[92m{available_types[selected_type_key]}\033[0m")
     return selected_type_key
 
-def run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, prompt_gen, question_type_key, statistics, trace):
+def run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, prompt_gen, question_type_key, statistics, trace, few_shot_examples=""):
     """Runs a series of questions against a specified model.
 
     Args:
@@ -316,6 +316,7 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
         question_type_key (str): The key for the question type to use.
         statistics (dict): A dictionary to store statistics about the runs.
         trace (list): A list to store traces of the runs.
+        few_shot_examples (str): Few-shot examples to include in the prompts, if any.
     """
     print(f"\n\033[92m=== Running questions for model: {model_display_name} ({model_id}) ===\033[0m")
     model_run_folder = os.path.join(run_folder, model_id.replace("/", "_")) # Sanitize model_id for folder name
@@ -329,7 +330,7 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
         
         format_args = {
             "question": question,
-            "example": "Example for S3, S4...",
+            "example": few_shot_examples,
             "info": "Info for D1, D2..."
         }
         
@@ -414,7 +415,7 @@ def main():
     settings.question_type = question_type
     
     # Language selection
-    folder, selected_language = open_dataset_folder(settings)
+    folder, selected_language, selected_folder_path = open_dataset_folder(settings)
     
     settings.language = selected_language
     print(f"Language for this run set to: \033[92m{settings.language}\033[0m")
@@ -443,6 +444,10 @@ def main():
     run_folder = create_run_folder(settings)
     questions = get_questions_from_folder(folder, settings)
     
+    few_shot_examples = prompt_gen.get_few_shot_examples(selected_folder_path)
+    
+    # print("---- FEW SHOT EXAMPLES: ", few_shot_examples)
+    
     
     for model_display_name, model_id in selected_models:
         statistics = Statistics()
@@ -468,7 +473,7 @@ def main():
         )
         
         
-        run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, prompt_gen, question_type, statistics, trace)
+        run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, prompt_gen, question_type, statistics, trace, few_shot_examples)
 
         trace.end()
         

@@ -1,7 +1,9 @@
+from typing import List
 import yaml
 import opik
 from pathlib import Path
 from .settings import Settings
+import os
 
 class PromptGenerator:
 
@@ -214,6 +216,48 @@ class PromptGenerator:
         eval_prompts['evaluation_criteria'] = eval_prompt_template
 
         return eval_prompts
+
+
+    def get_few_shot_examples(self, question_folder: str) -> List[str]:
+        file_name = self.settings.few_shot_examples_file
+        lang = self.settings.language
+        file_path = Path(question_folder) / file_name
+
+        print(f"Loading few-shot examples from: {file_path}")
+
+        if not file_path.exists():
+            print(f"Error: Few-shot examples file '{file_path}' does not exist.")
+            return []
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                all_data = yaml.safe_load(f)
+
+                lang_examples_dict = all_data.get(lang)
+
+                if not lang_examples_dict:
+                    print(f"Error: No examples found for language '{lang}' in {file_path}")
+                    return []
+
+                examples = [
+                    example_data['q']
+                    for example_data in lang_examples_dict.values()
+                    if isinstance(example_data, dict) and 'q' in example_data
+                ]
+
+                if not examples:
+                    print(f"Error: No valid examples found for language '{lang}' in {file_path}")
+
+                return examples
+
+        except yaml.YAMLError as e:
+            print(f"Error reading YAML file: {e}")
+            return []
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            return []
+        
+
 
     def get_opik_prompt_object(self, prompt_key: str) -> opik.Prompt:
         """
