@@ -7,8 +7,8 @@ class OpenAIClient:
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.max_requests_per_minute = max_requests_per_minute
 
-    def chat(self, model, messages, stream=False):
-        response = self.client.chat.completions.create(model=model, messages=messages)
+    def chat(self, model, messages, stream=False, temperature=0.7):
+        response = self.client.chat.completions.create(model=model, messages=messages, temperature=temperature, stream=stream, seed=27, top_p=0.1)
 
         if "gemini" in model:
             retries = 3
