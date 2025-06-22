@@ -88,3 +88,7 @@ prompting_techniques:
 prompting_technique: "S1"
 
 few_shot_examples_file: "few_shot_examples.yaml"
+
+information_file: "information.yaml"
+
+context_chapters_path: "../data/context/book/chapters"
