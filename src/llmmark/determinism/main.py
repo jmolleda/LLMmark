@@ -10,7 +10,7 @@ from ..clients.openai_client import OpenAIClient
 from ..clients.ollama_client import OllamaClient
 from opik import Opik
 
-opik_client = Opik(project_name="LLMmark_response_generation")
+opik_client = Opik(project_name="LLMmark_determinism")
 
 def open_dataset_folder(settings):
     """Open the dataset folder based on the settings.
@@ -152,7 +152,7 @@ def create_run_folder(settings):
     print(f"Created run experiment folder: {run_folder}")
     return run_folder
 
-def get_llm_response(settings, client, model, system_prompt, user_prompt):
+def get_llm_response(settings, client, model, system_prompt, user_prompt, temperature=0.7):
     """Gets the response from the LLM.
 
     Args:
@@ -161,6 +161,7 @@ def get_llm_response(settings, client, model, system_prompt, user_prompt):
         model (str): The model ID to use for the request.
         system_prompt (str): The system prompt to provide context.
         user_prompt (str): The user prompt containing the question.
+        temperature (float, optional): The temperature for the response generation. Defaults to 0.7.
 
     Returns:
         dict: The response from the LLM.
@@ -375,7 +376,7 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
             }
             start_time = time.time()
             
-            answer = get_llm_response(settings, client, model_id, system_prompt, user_prompt) or ""
+            answer = get_llm_response(settings, client, model_id, system_prompt, user_prompt, settings.temperature) or ""
             response_time = round(time.time() - start_time, 3)
             total_response_time += response_time
 
@@ -462,6 +463,8 @@ def main():
             "prompting_tech": prompting_tech,
             "num_runs_per_question": settings.num_runs_per_question,
             "model_source": "local" if model_source == 'L' else "online",
+            "temperature": settings.temperature,
+            "top-p": settings.top_p
         }
         
         opik_prompt_obj = prompt_gen.get_opik_prompt_object(prompting_tech)
@@ -470,7 +473,7 @@ def main():
             name=f"{os.path.basename(run_folder)}_{model_id}",
             metadata=trace_metadata,
             prompt=opik_prompt_obj,
-            tags={settings.question_type, settings.language, prompting_tech, "local" if model_source == 'L' else "online", model_id}
+            tags={settings.question_type, settings.language, prompting_tech, "local" if model_source == 'L' else "online", model_id, settings.temperature}
         )
         
         

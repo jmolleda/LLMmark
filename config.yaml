@@ -85,6 +85,7 @@ prompting_techniques:
   - D2: "Definition-based, Zero-shot and Role-Oriented"
   - D3: "Definition-based, Few-shot and Task-Oriented"
   - D4: "Definition-based, Few-shot and Role-Oriented"
+
 prompting_technique: "S1"
 
 few_shot_examples_file: "few_shot_examples.yaml"
@@ -92,3 +93,7 @@ few_shot_examples_file: "few_shot_examples.yaml"
 information_file: "information.yaml"
 
 context_chapters_path: "../data/context/book/chapters"
+
+temperature: 0.2
+
+top_p: 0.1
