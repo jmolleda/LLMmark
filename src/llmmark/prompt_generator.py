@@ -1,325 +1,153 @@
-from typing import List
+from typing import List, Dict
 import yaml
 import opik
 from pathlib import Path
 from .settings import Settings
-import os
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class PromptGenerator:
-
-    def __init__(self, settings: Settings, prompts_path: str = "../prompts.yaml"):
+    def __init__(self, settings: Settings, prompts_path: str = "prompts.yaml"):
         self.settings = settings
-        self.prompts_path = Path(prompts_path)
+        self.prompts_path = Path(__file__).resolve().parent.parent.parent / prompts_path
         self.prompts_data = self._load_prompts_from_yaml()
-        
-        # Opik prompts
         self.opik_prompts = {}
         self._register_prompts_in_opik()
 
     def _load_prompts_from_yaml(self) -> dict:
-        """
-        Loads prompts from a YAML file.
-
-        Raises:
-            FileNotFoundError: If the prompts file is not found.
-
-        Returns:
-            dict: The loaded prompts data.
-        """
         if not self.prompts_path.exists():
+            logger.error(f"Prompt file not found: {self.prompts_path}")
             raise FileNotFoundError(f"Prompt file not found: {self.prompts_path}")
-        
-        with open(self.prompts_path, 'r', encoding='utf-8') as f:
+        with open(self.prompts_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
 
     def _register_prompts_in_opik(self):
-        """
-        Iterates over the loaded prompts and registers them in Opik,
-        storing the resulting objects.
-        Raises:
-            ValueError: If a prompt has an unexpected format.
-        """
-        print("Registering prompts in the Opik library...")
-        # Iterates over all languages and prompts defined in the YAML
+        logger.info("Registering prompts in the Opik library...")
         for lang, prompts in self.prompts_data.items():
             for key, template in prompts.items():
-                if key == 'evaluation' and isinstance(template, dict):
+                if key == "evaluation" and isinstance(template, dict):
                     for sub_key, sub_template in template.items():
                         opik_prompt_name = f"{key}_{sub_key}_{lang}"
                         if isinstance(sub_template, str):
-                            prompt_text = sub_template
+                            opik_prompt_obj = opik.Prompt(
+                                name=opik_prompt_name, prompt=sub_template
+                            )
+                            self.opik_prompts[opik_prompt_name] = opik_prompt_obj
                         else:
-                            print(f"Skipping prompt '{sub_key}' in '{key}' for language '{lang}' due to unexpected format: {type(sub_template)}")
-                            continue
-                        
-                        # Opik prompt object
-                        opik_prompt_obj = opik.Prompt(
-                            name=opik_prompt_name,
-                            prompt=prompt_text
-                        )
-                        self.opik_prompts[opik_prompt_name] = opik_prompt_obj
+                            logger.warning(
+                                f"Skipping prompt '{sub_key}' in '{key}' due to unexpected format."
+                            )
                     continue
-                
 
                 opik_prompt_name = f"{key}_{lang}"
-                prompt_text = ""
                 if isinstance(template, dict):
-                    system_prompt = template.get('system', '')
-                    user_prompt = template.get('user', '')
-                    # Unify system and user prompts into a single prompt text
-                    prompt_text = f"System: {system_prompt}\nUser: {user_prompt}"
+                    prompt_text = f"System: {template.get('system', '')}\nUser: {template.get('user', '')}"
                 elif isinstance(template, str):
                     prompt_text = template
                 else:
-                    print(f"Skipping prompt '{key}' in language '{lang}' due to unexpected format: {type(template)}")
+                    logger.warning(f"Skipping prompt '{key}' due to unexpected format.")
                     continue
-
-                # Opik prompt object
-                opik_prompt_obj = opik.Prompt(
-                    name=opik_prompt_name,
-                    prompt=prompt_text
+                self.opik_prompts[opik_prompt_name] = opik.Prompt(
+                    name=opik_prompt_name, prompt=prompt_text
                 )
-                self.opik_prompts[opik_prompt_name] = opik_prompt_obj
+        logger.info("✅ Prompt registration complete.")
 
-        print("✅ Registration complete.")
-        
     def get_system_prompt(self, prompt_key: str, question_type: str, **kwargs) -> str:
-        """
-        Gets a formatted system prompt based on the provided key and question type.
-        It combines a base question prompt with a technique's system prompt,
-        then formats it with the provided arguments.
-
-        Args:
-            prompt_key (str): The key of the technique prompt (e.g., "S1", "R2").
-            question_type (str): The key of the base question type (e.g.,"open_answer" or "multiple_choice").
-            **kwargs: Arguments to format the final prompt (e.g., question="...", example="...").
-
-        Returns:
-            str: The combined and formatted system prompt.
-        """
-        
-        print(f"------ Generating system prompt for key: {prompt_key}, question type: {question_type} ------")
-        
         lang = self.settings.language
-        
-        # System prompt
         try:
-            technique_system_prompt = self.prompts_data[lang][prompt_key].get('system', '')
-            if not isinstance(technique_system_prompt, str):
-                raise TypeError("The 'system' part of the technique prompt is not a string.")
-        except (KeyError, AttributeError):
-            raise ValueError(f"Technique prompt with key '{prompt_key}' for language '{lang}' not found or is not a dictionary.")
-
-        # Base prompt
-        try:
-            base_prompt_template = self.prompts_data[lang][question_type]
-            
-            # Handle if the base prompt is a dictionary or a simple string
-            if isinstance(base_prompt_template, dict):
-                # If it's a dict, get the 'system' part, or an empty string if it doesn't exist
-                base_prompt_template = base_prompt_template.get("system", "")
-            elif not isinstance(base_prompt_template, str):
-                raise ValueError(f"Base prompt with key '{question_type}' for language '{lang}' has an invalid format.")
-                
-        except KeyError:
-            raise ValueError(f"Base prompt with key '{question_type}' for language '{lang}' not found.")
-
-        # Combine the base prompt and the technique's system prompt
-        combined_template = f"{base_prompt_template} {technique_system_prompt}".strip()
-
-        try:
-            # Format the final combined prompt with the provided arguments
-            final_prompt = combined_template.format(**kwargs)
+            technique_system = self.prompts_data[lang][prompt_key].get("system", "")
+            base_prompt = self.prompts_data[lang][question_type]
+            base_system = (
+                base_prompt.get("system", "")
+                if isinstance(base_prompt, dict)
+                else base_prompt
+            )
+            combined = f"{base_system} {technique_system}".strip()
+            return combined.format(**kwargs)
         except KeyError as e:
-            print(f"Formatting error in system prompt: Missing placeholder {e}")
-            print(f"Available placeholders: {kwargs.keys()}")
+            logger.error(
+                f"Prompt key not found: {e}. Check prompts.yaml for lang='{lang}', key='{prompt_key}', type='{question_type}'"
+            )
             raise
-
-        return final_prompt
-
 
     def get_user_prompt(self, prompt_key: str, **kwargs) -> str:
-        """
-        Gets a formatted user prompt based on the provided key.
-        The user prompt is primarily defined by the 'user' part of the technique prompt.
-
-        Args:
-            prompt_key (str): The key of the technique prompt (e.g., "S1", "R2").
-            **kwargs: Arguments to format the final prompt (e.g., question="...").
-
-        Returns:
-            str: The formatted user prompt
-        """
-        
-        print(f"------ Generating user prompt for key: {prompt_key} ------")
-        
         lang = self.settings.language
-        
-        # The user prompt is determined by the 'user' part of the technique prompt (e.g., S1, R2)
         try:
-            user_prompt_template = self.prompts_data[lang][prompt_key]['user']
-            if not isinstance(user_prompt_template, str):
-                raise TypeError("The 'user' part of the technique prompt is not a string.")
-        except (KeyError, AttributeError):
-            raise ValueError(f"Technique prompt with key '{prompt_key}' for language '{lang}' not found or does not contain a 'user' key.")
-
-        try:
-            # Format the final prompt with the provided arguments
-            final_prompt = user_prompt_template.format(**kwargs)
+            template = self.prompts_data[lang][prompt_key]["user"]
+            return template.format(**kwargs)
         except KeyError as e:
-            print(f"Formatting error in user prompt: Missing placeholder {e}")
-            print(f"Available placeholders: {kwargs.keys()}")
+            logger.error(
+                f"User prompt key not found: {e}. Check prompts.yaml for lang='{lang}', key='{prompt_key}'"
+            )
             raise
 
-        return final_prompt
-    
-    
-    def get_evaluation_prompts(self) -> dict:
-        """
-        Gets a dictionary of evaluation prompts based on the provided key and question type.
-        It combines a base question prompt with a technique's system prompt and user prompt,
-        then formats them with the provided arguments.
-
-        Args:
-            prompt_key (str): The key of the technique prompt (e.g., "S1", "R2").
-            question_type (str): The key of the base question type (e.g.,"open_answer" or "multiple_choice").
-            **kwargs: Arguments to format the final prompts (e.g., question="...", example="...").
-
-        Returns:
-            dict: A dictionary containing 'system' and 'user' prompts.
-        """
-        
-        print(f"------ Generating evaluation prompts for evaluation ------")
-        
-        # Evaluation language is always English to be consistent and realiable
-        lang = 'en'
-        task_intro = 'task_introduction'
-        eval_criteria = 'evaluation_criteria'
-        
-        eval_prompts = {}
-        
+    def get_evaluation_prompts(self) -> Dict[str, str]:
         try:
-            task_prompt_template = self.prompts_data[lang]['evaluation'][task_intro]
-            if not isinstance(task_prompt_template, str):
-                raise TypeError("The 'task_introduction' part of the technique prompt is not a string.")
-        except (KeyError, AttributeError):
-            raise ValueError(f"Evaluation task intro for language '{lang}' not found or does not contain a 'task_introduction' key.")
-        
-        try:
-            eval_prompt_template = self.prompts_data[lang]['evaluation'][eval_criteria]
-            if not isinstance(eval_prompt_template, str):
-                raise TypeError("The 'evaluation_criteria' part of the technique prompt is not a string.")
-        except (KeyError, AttributeError):
-            raise ValueError(f"Evaluation criteria for language '{lang}' not found or does not contain a 'evaluation_criteria' key.")
+            prompts = self.prompts_data["en"]["evaluation"]
+            return {
+                "task_introduction": prompts["task_introduction"],
+                "evaluation_criteria": prompts["evaluation_criteria"],
+            }
+        except KeyError as e:
+            logger.error(f"Evaluation prompt key not found in prompts.yaml: {e}")
+            raise
 
-        eval_prompts['task_introduction'] = task_prompt_template
-        eval_prompts['evaluation_criteria'] = eval_prompt_template
-
-        return eval_prompts
-
-
-    def get_few_shot_examples(self, question_folder: str) -> List[str]:
-        file_name = self.settings.few_shot_examples_file
-        lang = self.settings.language
-        file_path = Path(question_folder) / file_name
-
-        print(f"Loading few-shot examples from: {file_path}")
-
+    def get_few_shot_examples(self, question_folder: str) -> str:
+        file_path = Path(question_folder) / self.settings.few_shot_examples_file
         if not file_path.exists():
-            print(f"Error: Few-shot examples file '{file_path}' does not exist.")
-            return []
-
+            logger.warning(
+                f"Few-shot file not found at '{file_path}'. Proceeding without examples."
+            )
+            return ""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                all_data = yaml.safe_load(f)
-
-                lang_examples_dict = all_data.get(lang)
-
-                if not lang_examples_dict:
-                    print(f"Error: No examples found for language '{lang}' in {file_path}")
-                    return []
-
-                examples = [
-                    example_data['q']
-                    for example_data in lang_examples_dict.values()
-                    if isinstance(example_data, dict) and 'q' in example_data
-                ]
-
-                if not examples:
-                    print(f"Error: No valid examples found for language '{lang}' in {file_path}")
-
-                return examples
-
-        except yaml.YAMLError as e:
-            print(f"Error reading YAML file: {e}")
-            return []
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f).get(self.settings.language, {})
+            examples = "\n\n".join(
+                f"Q: {ex.get('q')}\nA: {ex.get('a')}"
+                for ex in data.values()
+                if "q" in ex and "a" in ex
+            )
+            if examples:
+                logger.info(f"Loaded few-shot examples from: {file_path}")
+            return examples
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-            return []
-        
+            logger.error(f"Error loading few-shot examples from {file_path}: {e}")
+            return ""
+
     def get_information(self, question_folder: str) -> str:
-        """
-        Gets the information text from the chapter of the book of Computers and Networks for the specified language.
-
-        Args:
-            question_folder (str): The folder where the questions are located.
-
-        Returns:
-            str: The information text from the chapter.
-        """
-        file_name = self.settings.information_file
-        lang = self.settings.language
-        file_path = Path(question_folder) / file_name
-        
-        context_chapters_path = Path(self.settings.context_chapters_path) / lang
-
-        print(f"Loading chapter information from: {file_path}")
-
-        if not file_path.exists():
-            print(f"Error: Chapter information file '{file_path}' does not exist.")
+        info_file = Path(question_folder) / self.settings.information_file
+        if not info_file.exists():
+            logger.warning(
+                f"Information file not found at '{info_file}'. Proceeding without context."
+            )
             return ""
-
         try:
-            chapter = ""
-            with open(file_path, 'r', encoding='utf-8') as f:
-                # Read information YAML to get chapter file name
-                chapter = yaml.safe_load(f)
-            
-            chapter_file = context_chapters_path / chapter['chapter_file']
-            if not chapter_file.exists():
-                print(f"Error: Chapter file '{chapter_file}' does not exist.")
+            with open(info_file, "r", encoding="utf-8") as f:
+                chapter_filename = yaml.safe_load(f).get("chapter_file")
+            if not chapter_filename:
                 return ""
-            # Get the text from the chapter of the book of Computers and Networks
-            with open(chapter_file, 'r', encoding='cp1252') as f:
-                chapter_text = f.read()
-            return chapter_text                
 
-        except yaml.YAMLError as e:
-            print(f"Error reading YAML file: {e}")
-            return ""
+            chapter_file = (
+                Path(self.settings.context_chapters_path)
+                / self.settings.language
+                / chapter_filename
+            )
+            if not chapter_file.exists():
+                logger.error(f"Chapter file '{chapter_file}' does not exist.")
+                return ""
+
+            with open(chapter_file, "r", encoding="cp1252", errors="ignore") as f:
+                logger.info(f"Loaded context information from: {chapter_file}")
+                return f.read()
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+            logger.error(f"Error loading context information: {e}")
             return ""
-
 
     def get_opik_prompt_object(self, prompt_key: str) -> opik.Prompt:
-        """
-        Returns the registered opik.Prompt object, useful for linking it to
-        evaluation experiments.
-
-        Args:
-            prompt_key (str): The key of the prompt (e.g. "S1", "R2").
-
-        Returns:
-            opik.Prompt: The corresponding Prompt object.
-        """
-        lang = self.settings.language
-        opik_prompt_name = f"{prompt_key}_{lang}"
-        
-        prompt_obj = self.opik_prompts.get(opik_prompt_name)
+        name = f"{prompt_key}_{self.settings.language}"
+        prompt_obj = self.opik_prompts.get(name)
         if not prompt_obj:
-            print(f"------------- {opik_prompt_name} not found in Opik prompts -------------")
-            
-            raise ValueError(f"Opik.Prompt object with name '{opik_prompt_name}' was not registered.")
-
+            raise ValueError(f"Opik.Prompt object '{name}' was not registered.")
         return prompt_obj
