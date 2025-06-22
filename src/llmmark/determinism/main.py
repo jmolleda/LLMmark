@@ -3,11 +3,11 @@ import re
 import json
 import time
 import requests
-from .settings import Settings
-from .statistics import Statistics
-from .prompt_generator import PromptGenerator
-from .clients.openai_client import OpenAIClient
-from .clients.ollama_client import OllamaClient
+from ..settings import Settings
+from ..statistics import Statistics
+from ..prompt_generator import PromptGenerator
+from ..clients.openai_client import OpenAIClient
+from ..clients.ollama_client import OllamaClient
 from opik import Opik
 
 opik_client = Opik(project_name="LLMmark_response_generation")
@@ -302,7 +302,7 @@ def select_question_type(settings):
     print(f"Question type selected: \033[92m{available_types[selected_type_key]}\033[0m")
     return selected_type_key
 
-def run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, prompt_gen, question_type_key, statistics, trace, few_shot_examples=""):
+def run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, prompt_gen, question_type_key, statistics, trace, few_shot_examples="", information=""):
     """Runs a series of questions against a specified model.
 
     Args:
@@ -317,6 +317,7 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
         statistics (dict): A dictionary to store statistics about the runs.
         trace (list): A list to store traces of the runs.
         few_shot_examples (str): Few-shot examples to include in the prompts, if any.
+        information (str): Additional information to include in the prompts, if any.
     """
     print(f"\n\033[92m=== Running questions for model: {model_display_name} ({model_id}) ===\033[0m")
     model_run_folder = os.path.join(run_folder, model_id.replace("/", "_")) # Sanitize model_id for folder name
@@ -331,7 +332,7 @@ def run_questions_for_model(model_display_name, model_id, questions, settings, c
         format_args = {
             "question": question,
             "example": few_shot_examples,
-            "info": "Info for D1, D2..."
+            "info": information
         }
         
         prompting_tech = settings.prompting_technique
@@ -446,6 +447,8 @@ def main():
     
     few_shot_examples = prompt_gen.get_few_shot_examples(selected_folder_path)
     
+    information = prompt_gen.get_information(selected_folder_path)
+
     for model_display_name, model_id in selected_models:
         statistics = Statistics()
 
@@ -471,12 +474,12 @@ def main():
         )
         
         
-        run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, prompt_gen, question_type, statistics, trace, few_shot_examples)
+        run_questions_for_model(model_display_name, model_id, questions, settings, client, run_folder, prompt_gen, question_type, statistics, trace, few_shot_examples, information)
 
         trace.end()
         
-        statistics.print_statistics()
-        statistics.save_statistics(os.path.join(run_folder, model_id, settings.files['stats_file_name']))
+        # statistics.print_statistics()
+        # statistics.save_statistics(os.path.join(run_folder, model_id, settings.files['stats_file_name']))
 
     print("\n=== All experiments completed ===")
 

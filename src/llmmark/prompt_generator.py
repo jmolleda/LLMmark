@@ -257,6 +257,49 @@ class PromptGenerator:
             print(f"An unexpected error occurred: {e}")
             return []
         
+    def get_information(self, question_folder: str) -> str:
+        """
+        Gets the information text from the chapter of the book of Computers and Networks for the specified language.
+
+        Args:
+            question_folder (str): The folder where the questions are located.
+
+        Returns:
+            str: The information text from the chapter.
+        """
+        file_name = self.settings.information_file
+        lang = self.settings.language
+        file_path = Path(question_folder) / file_name
+        
+        context_chapters_path = Path(self.settings.context_chapters_path) / lang
+
+        print(f"Loading chapter information from: {file_path}")
+
+        if not file_path.exists():
+            print(f"Error: Chapter information file '{file_path}' does not exist.")
+            return ""
+
+        try:
+            chapter = ""
+            with open(file_path, 'r', encoding='utf-8') as f:
+                # Read information YAML to get chapter file name
+                chapter = yaml.safe_load(f)
+            
+            chapter_file = context_chapters_path / chapter['chapter_file']
+            if not chapter_file.exists():
+                print(f"Error: Chapter file '{chapter_file}' does not exist.")
+                return ""
+            # Get the text from the chapter of the book of Computers and Networks
+            with open(chapter_file, 'r', encoding='cp1252') as f:
+                chapter_text = f.read()
+            return chapter_text                
+
+        except yaml.YAMLError as e:
+            print(f"Error reading YAML file: {e}")
+            return ""
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            return ""
 
 
     def get_opik_prompt_object(self, prompt_key: str) -> opik.Prompt:
