@@ -45,6 +45,9 @@ question_types:
   - open_answer: "Open Answer"
   - multiple_choice: "Multiple Choice"
 
+# Default question type
+question_type: "open_answer"
+
 # Valid model modes
 # - chat
 # - generate
@@ -66,7 +69,6 @@ experiments_folder: "../data/runs"
 question_file_prefix: "question_"
 api_key_env_var: "OPENAI_API_KEY"
 model_name: "gemini-2.0-flash"
-evaluation_output_file: "evaluation_output.json"
 
 # en: English and es: Spanish
 language: "en"
@@ -95,5 +97,8 @@ information_file: "information.yaml"
 context_chapters_path: "../data/context/book/chapters"
 
 temperature: 0.0
-
 top_p: 0.1
+
+evaluation_output_file: "evaluation_output.json"
+evaluation:
+  judge_model: "gemini/gemini-1.5-flash-latest"
