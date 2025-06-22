@@ -1,32 +1,69 @@
-from openai import OpenAI, InternalServerError
+from openai import OpenAI, APIError, InternalServerError
 import time
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class OpenAIClient:
-    def __init__(self, api_key: str,  base_url: str, max_requests_per_minute=0):
-        # self.client = track_openai(OpenAI(api_key=api_key, base_url=base_url), project_name="LLMmark_clients")
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str,
+        max_requests_per_minute=0,
+        top_p=0.1,
+        seed=27,
+        max_retries=3,
+    ):
+        if not api_key:
+            raise ValueError("API key must be provided for OpenAIClient.")
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.max_requests_per_minute = max_requests_per_minute
+        self.top_p = top_p
+        self.seed = seed
+        self.max_retries = max_retries
+        self.request_delay = (
+            (60 / max_requests_per_minute) if max_requests_per_minute > 0 else 0
+        )
+        logger.info(f"OpenAI client initialized for base_url: {base_url}")
 
     def chat(self, model, messages, stream=False, temperature=0.7):
-        response = self.client.chat.completions.create(model=model, messages=messages, temperature=temperature, stream=stream, seed=27, top_p=0.1)
+        for attempt in range(self.max_retries):
+            try:
+                if self.request_delay > 0:
+                    logger.debug(
+                        f"Delaying for {self.request_delay:.2f}s due to rate limit."
+                    )
+                    time.sleep(self.request_delay)
 
-        if "gemini" in model:
-            retries = 3
-            for attempt in range(retries):
-                try:
-                    # Take into account Google Generative Language API quota limits
-                    # This affects the mearured response time
-                    # if self.max_requests_per_minute > 0:
-                    #     time.sleep(60 / self.max_requests_per_minute)
+                response = self.client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    stream=stream,
+                    seed=self.seed,
+                    top_p=self.top_p,
+                )
+
+                if response.choices and response.choices[0].message:
                     return response.choices[0].message.content
-                except InternalServerError as e:
-                    if e.status_code == 503:
-                        print(f"\033[93m[503 Model Overload] Retrying in 15 seconds...(Attempt {retries}/{self.max_retries})\033[0m")
-                        time.sleep(15)
-                    else:
-                        print(f"\033[91m[Error] {e}\033[0m")
-                        break
+                logger.warning("Received an empty or malformed response from the API.")
+                return ""
 
-        if "gpt" in model:
-            return response.output_text
+            except InternalServerError as e:
+                wait_time = 15 * (attempt + 1)
+                logger.warning(
+                    f"[{e.status_code} Server Error] Retrying in {wait_time}s... (Attempt {attempt + 1}/{self.max_retries})"
+                )
+                time.sleep(wait_time)
+            except APIError as e:
+                logger.error(f"OpenAI API Error on attempt {attempt + 1}: {e}")
+                if attempt + 1 == self.max_retries:
+                    break
+                time.sleep(5 * (attempt + 1))
+            except Exception as e:
+                logger.error(f"An unexpected error occurred in OpenAI client: {e}")
+                return ""
+
+        logger.error("Max retries reached. Request failed.")
         return ""
