@@ -20,86 +20,56 @@ en:
       3.  **Scoring**: Assign a single integer score from the detailed rubric below.
 
       ## Scoring Rubric (Integers 0 - 10):
-      - **10 (Perfect):**
-        - The answer is factually perfect, fully relevant, and semantically identical to the 'Expected Answer'.
-      - **9 (Excellent):**
-        - The answer is factually perfect and relevant, but uses different (yet valid) wording or a different structure.
-      - **7-8 (Good):**
-        - The answer is factually correct and relevant but has stylistic or completeness flaws. Use 8 for minor flaws (e.g., slightly verbose) and 7 for more noticeable ones (e.g., omits some non-essential context).
-      - **3-6 (Acceptable / Deficient):**
-        - The answer is on-topic but contains non-critical factual errors or is significantly incomplete. Use a score in this range depending on the severity and quantity of the flaws.
-      - **1-2 (Very Poor):**
-        - The answer attempts to address the question but is mostly incorrect or irrelevant.
-      - **0 (Totally Incorrect):**
-        - This score is **mandatory** if the "Critical Error Check" from Step 1 fails.
+      - **10 (Perfect):** The answer is factually perfect, fully relevant, and semantically identical to the 'Expected Answer'.
+      - **9 (Excellent):** The answer is factually perfect and relevant, but uses different (yet valid) wording or a different structure.
+      - **7-8 (Good):** The answer is factually correct and relevant but has stylistic or completeness flaws.
+      - **3-6 (Acceptable / Deficient):** The answer is on-topic but contains non-critical factual errors or is significantly incomplete.
+      - **1-2 (Very Poor):** The answer attempts to address the question but is mostly incorrect or irrelevant.
+      - **0 (Totally Incorrect):** This score is **mandatory** if the "Critical Error Check" from Step 1 fails.
 
       Based on your analysis, provide **ONLY the single integer score**. Do not add explanations, JSON, or any other text.
 
-  # Standard prompts
-  # S1: Standard, Zero-shot and Task-Oriented
+  # Standard Prompts
   S1: 
     system: ""
     user: "Do not include any additional text or explanations in your response, just the answer to the question. Question: {question}"
-  
-  # S2: Standard, Zero-shot and Role-Oriented
   S2: 
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content."
     user: "Do not include any additional text or explanations in your response, just the answer to the question. Question: {question}"
-
-  # S3: Standard, Few-shot and Task-Oriented
   S3: 
     system: ""
     user: "Given the following example: {example}, answer the following question. Do not include any additional text or explanations in your response, just the answer to the question. Question: {question}"
-
-  # S4: Standard, Few-shot and Role-Oriented
   S4: 
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content."
     user: "Given the following example: {example}, answer the following question. Do not include any additional text or explanations in your response, just the answer to the question. Question: {question}"
 
-
-  # Reasoning prompts
-  # R1: Reasoning, Zero-shot and Task-Oriented
+  # Reasoning Prompts
   R1: 
     system: ""
-    user: "Lets think step by step about the question and provide a detailed answer including all the necessary steps and reasoning. Answer the following question: {question}"
-
-  # R2: Reasoning, Zero-shot and Role-Oriented
+    user: "Provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning. Question: {question}"
   R2: 
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content."
-    user: "Lets think step by step about the question and provide a detailed answer including all the necessary steps and reasoning. Answer the following question: {question}"
-
-  # R3: Reasoning, Few-shot and Task-Oriented
+    user: "Provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning. Question: {question}"
   R3: 
     system: ""
-    user: "Given the following example: {example}, lets think step by step about the question and provide a detailed answer including all the necessary steps and reasoning. Answer the following question: {question}"
-
-  # R4: Reasoning, Few-shot and Role-Oriented
+    user: "Given the following example: {example}, provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning. Question: {question}"
   R4: 
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content."
-    user: "Given the following example: {example}, lets think step by step about the question and provide a detailed answer including all the necessary steps and reasoning. Answer the following question: {question}"
+    user: "Given the following example: {example}, provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning. Question: {question}"
 
-  # Definition-based prompts
-  # D1: Definition-based, Zero-shot and Task-Oriented
+  # Definition-based Prompts
   D1: 
     system: ""
     user: "Considering this information: {info}, provide an answer to the following question. Question: {question}"
-
-  # D2: Definition-based, Zero-shot and Role-Oriented
   D2: 
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students."
     user: "Considering this information: {info}, provide an answer to the following question. Question: {question}"
-
-  # D3: Definition-based, Few-shot and Task-Oriented
   D3: 
     system: ""
     user: "Given the following example: {example} and considering this information: {info}, provide an answer to the following question. Question: {question}"
-
-  # D4: Definition-based, Few-shot and Role-Oriented
   D4: 
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students."
     user: "Given the following example: {example}, considering this information: {info}, provide an answer to the following question. Question: {question}"
-
-
 
 es:
   # Base prompts in Spanish
@@ -110,66 +80,44 @@ es:
     Debes responder con exactamente una de las siguientes opciones: [a], [b], [c], [d], [e] o [f].
     Tu respuesta debe coincidir exactamente con el formato de las opciones, incluyendo los corchetes y las letras minúsculas. Proporciona una respuesta a la siguiente pregunta. 
 
-  # Standard prompts
-  # S1: Standard, Zero-shot and Task-Oriented
+  # Standard Prompts
   S1:
     system: ""
     user: "No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta. Pregunta: {question}"
-
-  # S2: Standard, Zero-shot and Role-Oriented
   S2:
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería. Tu tarea es responder a la pregunta de un estudiante sobre el contenido del curso."
     user: "No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta. Pregunta: {question}"
-
-  # S3: Standard, Few-shot and Task-Oriented
   S3:
     system: ""
     user: "Dada el siguiente ejemplo: {example}, responde a la siguiente pregunta. No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta. Pregunta: {question}"
-
-  # S4: Standard, Few-shot and Role-Oriented
   S4: 
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería. Tu tarea es responder a la pregunta de un estudiante sobre el contenido del curso."
     user: "Dado el siguiente ejemplo: {example}, responde a la siguiente pregunta. No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta. Pregunta: {question}"
 
-  # Reasoning prompts
-  # R1: Reasoning, Zero-shot and Task-Oriented
+  # Reasoning Prompts
   R1: 
     system: ""
-    user: "Pensemos paso a paso sobre la pregunta y proporcionemos una respuesta detallada incluyendo todos los pasos y razonamientos necesarios. Responde a la siguiente pregunta: {question}"
-
-  # R2: Reasoning, Zero-shot and Role-Oriented
+    user: "Proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios. Pregunta: {question}"
   R2: 
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería. Tu tarea es responder a la pregunta de un estudiante sobre el contenido del curso."
-    user: "Pensemos paso a paso sobre la pregunta y proporcionemos una respuesta detallada incluyendo todos los pasos y razonamientos necesarios. Responde a la siguiente pregunta: {question}"
-
-  # R3: Reasoning, Few-shot and Task-Oriented
+    user: "Proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios. Pregunta: {question}"
   R3: 
     system: ""
-    user: "Dado el siguiente ejemplo: {example}, pensemos paso a paso sobre la pregunta y proporcionemos una respuesta detallada incluyendo todos los pasos y razonamientos necesarios. Responde a la siguiente pregunta: {question}"
-
-  # R4: Reasoning, Few-shot and Role-Oriented
+    user: "Dado el siguiente ejemplo: {example}, proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios. Pregunta: {question}"
   R4: 
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería."
-    user: "Dado el siguiente ejemplo: {example}, pensemos paso a paso sobre la pregunta y proporcionemos una respuesta detallada incluyendo todos los pasos y razonamientos necesarios. Responde a la siguiente pregunta: {question}"
+    user: "Dado el siguiente ejemplo: {example}, proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios. Pregunta: {question}"
 
-  # Definition-based prompts
-  # D1: Definition-based, Zero-shot and Task-Oriented
+  # Definition-based Prompts
   D1: 
     system: ""
     user: "Considerando esta información: {info}, proporciona una respuesta a la siguiente pregunta. Pregunta: {question}"
-
-  # D2: Definition-based, Zero-shot and Role-Oriented
   D2: 
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería."
     user: "Considerando esta información: {info}, proporciona una respuesta a la siguiente pregunta. Pregunta: {question}"
-
-  # D3: Definition-based, Few-shot and Task-Oriented
   D3: 
     system: ""
     user: "Dado el siguiente ejemplo: {example}, considerando esta información: {info}, proporciona una respuesta a la siguiente pregunta. Pregunta: {question}"
-
-  # D4: Definition-based, Few-shot and Role-Oriented
   D4: 
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería."
     user: "Dado el siguiente ejemplo: {example}, considerando esta información: {info}, proporciona una respuesta a la siguiente pregunta. Pregunta: {question}"
-
