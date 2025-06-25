@@ -411,6 +411,7 @@ def main():
                 args.model_source,
                 model_id,
                 str(settings.temperature),
+                args.exercise_folder
             },
         )
         run_questions_for_model(

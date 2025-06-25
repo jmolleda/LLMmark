@@ -440,6 +440,7 @@ def main():
                 args.model_source,
                 model_id,
                 str(settings.temperature),
+                args.exercise_folder,
             },
         )
 
