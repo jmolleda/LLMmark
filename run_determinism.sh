@@ -7,11 +7,10 @@
 # Configuration
 
 MODEL_ID="all"
-NUM_RUNS=10
+NUM_RUNS=3
 EXERCISE_FOLDER="exam_01_oa"
 QUESTION_TYPE="open_answer"
 LANGUAGE="en"
-# PROMPT_TECHNIQUE="R1"
 PROMPT_TECHNIQUES=(
     "R1"
     "R2"
@@ -24,7 +23,6 @@ TEMPERATURES=(
     0.2
     0.4
 )
-
 
 echo "Starting LLMmark determinism test..."
 echo "-------------------------------------"
