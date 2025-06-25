@@ -8,7 +8,7 @@
 # To evaluate all runs: RUN_FOLDERS_TO_EVALUATE=($(ls -d ../data/runs/run_* | xargs -n 1 basename))
 
 RUN_FOLDERS_TO_EVALUATE=(
-    "run_104"
+    "run_014"
     # "run_086"
     # "run_087"
 )

@@ -6,10 +6,10 @@
 
 # Configuration
 MODELS=(
-    # "deepseek-r1:1.5b"
-    "gemma3:1b"
-    "gemma3:4b"
-    "llama3.2:1b"
+    "deepseek-r1:1.5b"
+    # "gemma3:1b"
+    # "gemma3:4b"
+    # "llama3.2:1b"
     # "moondream:1.8b"
     # "smollm2:1.7b"
     # "tinyllama:1.1b"
@@ -20,14 +20,14 @@ MODELS=(
 
 
 PROMPT_TECHNIQUES=(
-    "R1"
-    "S1"
-    "D1"
+    "R4"
+    # "S1"
+    # "D1"
 )
 
 EXERCISE_FOLDERS=(
     "exam_01_oa"
-    "exercises_01_oa"
+    # "exercises_01_oa"
 )
 
 QUESTION_TYPE="open_answer"
