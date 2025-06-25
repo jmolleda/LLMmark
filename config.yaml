@@ -4,24 +4,24 @@ ollama:
 ollama_models:
   - display_name: "DeepSeek R1:1.5b"
     model_id: "deepseek-r1:1.5b"      # 1.1 GB
-  - display_name: "Deepseek-r1"
-    model_id: "deepseek-r1"           # 4.7 GB
   - display_name: "Gemma3:1b"
     model_id: "gemma3:1b"             # 815 MB
+  - display_name: "Gemma3:4b"
+    model_id: "gemma3:4b"             # 3.1 GB
   - display_name: "Llama3.2:1b"
     model_id: "llama3.2:1b"           # 1.3 GB
-  - display_name: "Mistrallite:7b"
-    model_id: "mistrallite:7b"        # 4.1 GB
   - display_name: "Moondream 2"
     model_id: "moondream:1.8b"        # 1.7 GB
-  - display_name: "Phi3:3.8b"
-    model_id: "phi3:3.8b"             # 2.2 GB
   - display_name: "smollm2:1.7b"
     model_id: "smollm2:1.7b"          # 1.8 GB
   - display_name: "TinyLlama:1.1b"
     model_id: "tinyllama:1.1b"        # 638 MB
   - display_name: "Qwen3:0.6b"
     model_id: "qwen3:0.6b"            # 523 MB
+  - display_name: "Qwen3:1.7b"
+    model_id: "qwen3:1.7b"            # 1.6 GB
+  - display_name: "Qwen3:4b"
+    model_id: "qwen3:4b"              # 3.8 GB
 
 openai_models:
   - display_name: "GPT-3.5 Turbo"
@@ -45,6 +45,9 @@ question_types:
   - open_answer: "Open Answer"
   - multiple_choice: "Multiple Choice"
 
+# Default question type
+question_type: "open_answer"
+
 # Valid model modes
 # - chat
 # - generate
@@ -66,7 +69,6 @@ experiments_folder: "../data/runs"
 question_file_prefix: "question_"
 api_key_env_var: "OPENAI_API_KEY"
 model_name: "gemini-2.0-flash"
-evaluation_output_file: "evaluation_output.json"
 
 # en: English and es: Spanish
 language: "en"
@@ -83,6 +85,20 @@ prompting_techniques:
   - R4: "Reasoning, Few-shot and Task-Oriented"
   - D1: "Definition-based, Zero-shot and Task-Oriented"
   - D2: "Definition-based, Zero-shot and Role-Oriented"
-  - D3: "Definition-based, Few-shot and Role-Oriented"
-  - D4: "Definition-based, Few-shot and Task-Oriented"
-prompting_technique: "S1"
+  - D3: "Definition-based, Few-shot and Task-Oriented"
+  - D4: "Definition-based, Few-shot and Role-Oriented"
+
+prompting_technique: "R1"
+
+few_shot_examples_file: "few_shot_examples.yaml"
+
+information_file: "information.yaml"
+
+context_chapters_path: "../data/context/book/chapters"
+
+temperature: 0.0
+top_p: 0.1
+
+evaluation_output_file: "evaluation_output.json"
+evaluation:
+  judge_model: "gemini/gemini-1.5-flash-latest"

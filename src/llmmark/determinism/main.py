@@ -5,31 +5,33 @@ import time
 import requests
 import argparse
 import logging
-from .settings import Settings
-from .statistics import Statistics
-from .prompt_generator import PromptGenerator
-from .clients.openai_client import OpenAIClient
-from .clients.ollama_client import OllamaClient
-from .logger_config import setup_logging
+from ..settings import Settings
+from ..statistics import Statistics
+from ..prompt_generator import PromptGenerator
+from ..clients.openai_client import OpenAIClient
+from ..clients.ollama_client import OllamaClient
+from ..logger_config import setup_logging
 from opik import Opik
 
 logger = logging.getLogger(__name__)
 
+opik_client = Opik(project_name="LLMmark_determinism")
+
 
 def get_local_models(models):
-    return [(model["display_name"], model["model_id"]) for model in models]
+    return [(m["display_name"], m["model_id"]) for m in models]
 
 
 def get_online_models(models):
     return [
         (
-            model["display_name"],
-            model["model_id"],
-            model["base_url"],
-            model["api_key"],
-            model["max_requests_per_minute"],
+            m["display_name"],
+            m["model_id"],
+            m["base_url"],
+            m["api_key"],
+            m["max_requests_per_minute"],
         )
-        for model in models
+        for m in models
     ]
 
 
@@ -50,6 +52,7 @@ def get_questions_from_folder(folder, settings):
 
 
 def create_run_folder(settings):
+    """Creates a new run folder for experiments."""
     base_folder = settings.folders["base_experiments_folder"]
     os.makedirs(base_folder, exist_ok=True)
     prefix = settings.folders["experiment_folder_name"]
@@ -67,34 +70,36 @@ def create_run_folder(settings):
     run_folder_name = f"{prefix}{n:03d}"
     run_folder = os.path.join(base_folder, run_folder_name)
     os.makedirs(run_folder)
+    logger.info(f"Created run experiment folder: {run_folder}")
     return run_folder
 
 
-def get_llm_response(settings, client, model, system_prompt, user_prompt):
+def get_llm_response(settings, client, model, system_prompt, user_prompt, temperature):
+    """Gets the response from the LLM."""
     return client.chat(
         model=model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=settings.temperature,
+        temperature=temperature,
     )
 
 
 def is_model_installed(model_name: str, ollama_base_url) -> bool:
+    """Check if a model is installed in Ollama."""
     try:
         response = requests.get(f"{ollama_base_url}/api/tags")
         response.raise_for_status()
-        return any(
-            model.get("name", "").startswith(model_name)
-            for model in response.json().get("models", [])
-        )
+        models = response.json().get("models", [])
+        return any(model.get("name", "").startswith(model_name) for model in models)
     except requests.exceptions.RequestException as e:
         logger.error(f"Error checking Ollama model list: {e}")
         return False
 
 
 def pull_model(model_name: str, ollama_base_url) -> None:
+    """Pulls a model from the Ollama server."""
     logger.info(
         f"Attempting to pull model '{model_name}' from Ollama. This may take a while..."
     )
@@ -106,13 +111,17 @@ def pull_model(model_name: str, ollama_base_url) -> None:
             if line:
                 status = json.loads(line.decode("utf-8"))
                 if "status" in status:
-                    log_line = f"  Pulling {model_name}: {status['status']}"
-                    if "total" in status and "completed" in status:
+                    log_line = f"Pulling {model_name}: {status['status']}"
+                    if (
+                        "digest" in status
+                        and "total" in status
+                        and "completed" in status
+                    ):
                         progress = (
                             status.get("completed", 0) / status.get("total", 1) * 100
                         )
-                        print(f"\r{log_line} | {progress:.2f}%", end="")
-        print()
+                        log_line += f" | {progress:.2f}%"
+                    logger.info(log_line)
         logger.info(f"Finished pulling {model_name}.")
     except (requests.exceptions.RequestException, json.JSONDecodeError) as e:
         logger.error(f"Error pulling model '{model_name}': {e}")
@@ -132,72 +141,97 @@ def run_questions_for_model(
     information="",
     reasoning_info="",
 ):
+    """Runs a series of questions against a specified model."""
     logger.info(
-        f"\n{'='*25} Running Model: {model_display_name} ({model_id}) {'='*25}",
-        extra={"is_header": True},
+        f"=== Running questions for model: {model_display_name} ({model_id}) ==="
     )
     model_run_folder = os.path.join(run_folder, model_id.replace("/", "_"))
     os.makedirs(model_run_folder, exist_ok=True)
+
     for idx, (filename, question) in enumerate(questions, 1):
         match = re.search(r"<(.*)>", question, re.DOTALL)
         correct_answer = match.group(1).strip() if match else ""
         if match:
             question = re.sub(r"<.*?>", "", question).strip()
-        logger.info(f"\n> Question {idx:02d}/{len(questions):02d}: {question}")
+
         format_args = {
             "question": question,
             "example": few_shot_examples,
             "info": information,
             "reasoning_instructions": reasoning_info,
         }
+
         system_prompt = prompt_gen.get_system_prompt(
             prompt_key=settings.prompting_technique,
             question_type=settings.question_type,
             **format_args,
         )
+        
         user_prompt = prompt_gen.get_user_prompt(
             prompt_key=settings.prompting_technique, **format_args
         )
-        outputs, total_response_time = [], 0
+
+        logger.info(f"Running Q{idx:02d}/{len(questions):02d} ({filename})")
+        logger.debug(f"System prompt: {system_prompt}")
+        logger.debug(f"User prompt: {user_prompt}")
+
+        outputs = []
+        total_response_time = 0
         for run_idx in range(settings.num_runs_per_question):
+            exp_name = os.path.basename(run_folder)
+            log_prefix = f"Exp:{exp_name} | M:{model_display_name} | Q:{idx:02d} | R:{run_idx + 1:02d}"
+
+            opik_metadata = {
+                "model_display_name": model_display_name,
+                "model_id": model_id,
+                "run_name": exp_name,
+                "question_file": filename,
+                "iteration": run_idx + 1,
+                "correct_answer": correct_answer,
+                "question_type": settings.question_type,
+            }
             start_time = time.time()
+
             answer = (
-                get_llm_response(settings, client, model_id, system_prompt, user_prompt)
+                get_llm_response(
+                    settings,
+                    client,
+                    model_id,
+                    system_prompt,
+                    user_prompt,
+                    settings.temperature,
+                )
                 or ""
             )
             response_time = round(time.time() - start_time, 3)
             total_response_time += response_time
+
+            answer_no_newlines = answer.replace("\n", " ")
             answer_no_think = re.sub(
-                r"<think>.*?</think>", "", answer.replace("\n", " "), flags=re.DOTALL
+                r"<think>.*?</think>", "", answer_no_newlines, flags=re.DOTALL
             ).strip()
-            answer_clean = (
-                "".join(re.findall(r"\[[a-f]\]", answer_no_think))
-                if settings.question_type == "multiple_choice"
-                else answer_no_think
-            )
+
+            answer_clean = answer_no_think
+            if settings.question_type == "multiple_choice":
+                matches = re.findall(r"\[[a-f]\]", answer_no_think)
+                answer_clean = "".join(matches)
+
             logger.info(
-                f"  [Run {run_idx + 1:02d}/{settings.num_runs_per_question:02d}] Time: {response_time:>5.2f}s | Answer: {answer_clean}"
+                f"{log_prefix} | Time:{response_time}s | Answer: {answer_clean}"
             )
+
             statistics.record_experiment(True, response_time)
             outputs.append(
                 {
                     "question": question,
                     "answer": answer_clean,
                     "correct_answer": correct_answer,
-                    "raw_answer": answer,
+                    "raw_answer": answer_no_think,
                     "model": model_display_name,
                     "response_time (s)": response_time,
                 }
             )
-            opik_metadata = {
-                "model_display_name": model_display_name,
-                "model_id": model_id,
-                "run_name": os.path.basename(run_folder),
-                "question_file": filename,
-                "iteration": run_idx + 1,
-                "correct_answer": correct_answer,
-                "question_type": settings.question_type,
-            }
+
             trace.span(
                 name=f"q{idx}_r{run_idx + 1}",
                 type="llm",
@@ -211,10 +245,12 @@ def run_questions_for_model(
                 },
                 metadata=opik_metadata,
             )
+
         avg_response_time = round(
             total_response_time / settings.num_runs_per_question, 3
         )
         outputs.insert(0, {"average_response_time (s)": avg_response_time})
+
         out_file = os.path.join(
             model_run_folder, f"{settings.files['question_file_name']}{idx:02d}.json"
         )
@@ -223,10 +259,13 @@ def run_questions_for_model(
 
 
 def main():
+    """Main entry point for the LLMmark determinism runner."""
     setup_logging()
     settings = Settings()
-    opik_client = Opik(project_name="LLMmark_response_generation")
-    parser = argparse.ArgumentParser(description="LLMmark benchmark runner.")
+    opik_client = Opik(project_name="LLMmark_determinism")
+
+    parser = argparse.ArgumentParser(description="LLMmark determinism runner.")
+
     parser.add_argument(
         "-qt",
         "--question-type",
@@ -296,20 +335,14 @@ def main():
     )
     args = parser.parse_args()
 
-    settings.question_type, settings.language, settings.prompting_technique = (
-        args.question_type,
-        args.language,
-        args.prompting_technique,
-    )
-    settings.num_runs_per_question, settings.temperature, settings.top_p = (
-        args.num_runs,
-        args.temperature,
-        args.top_p,
-    )
-    logger.info("--- LLMmark Run Configuration ---", extra={"is_header": True})
-    for key, value in vars(args).items():
-        logger.info(f"  {key:<22}: {value}")
-    logger.info("---------------------------------", extra={"is_header": True})
+    settings.question_type = args.question_type
+    settings.language = args.language
+    settings.prompting_technique = args.prompting_technique
+    settings.num_runs_per_question = args.num_runs
+    settings.temperature = args.temperature
+    settings.top_p = args.top_p
+
+    logger.info(f"Run configuration: {vars(args)}")
 
     base_data_folder = settings.folders["data_folder_name"]
     questions_folder = os.path.join(
@@ -318,19 +351,18 @@ def main():
     exercise_path = os.path.join(
         base_data_folder, args.question_type, args.exercise_folder
     )
+
     if not os.path.isdir(questions_folder):
         logger.error(f"Data folder does not exist: {questions_folder}")
         exit(1)
+
     prompt_gen = PromptGenerator(settings=settings)
 
-    client, selected_models_info = None, []
+    client = None
+    selected_models_info = []
     if args.model_source == "local":
         models_list = get_local_models(settings.ollama_models)
-        client = OllamaClient(
-            host=settings.ollama["host"],
-            top_p=settings.top_p,
-            timeout=settings.ollama.get("timeout", 120),
-        )
+        client = OllamaClient(host=settings.ollama["host"], top_p=settings.top_p)
         model_ids_to_run = (
             [m[1] for m in models_list]
             if args.model_id.lower() == "all"
@@ -339,21 +371,19 @@ def main():
         selected_models_info = [m for m in models_list if m[1] in model_ids_to_run]
     else:
         models_list = get_online_models(settings.openai_models)
-        selected_models_info = (
-            models_list
-            if args.model_id.lower() == "all"
-            else [m for m in models_list if m[1] == args.model_id]
-        )
+        if args.model_id.lower() == "all":
+            selected_models_info = models_list
+        else:
+            selected_models_info = [m for m in models_list if m[1] == args.model_id]
+
     if not selected_models_info:
         logger.error(
-            f"Model ID '{args.model_id}' not found for source '{args.model_source}'."
+            f"Model ID '{args.model_id}' not found in config.yaml for source '{args.model_source}'."
         )
         exit(1)
 
     run_folder = create_run_folder(settings)
-    logger.info(f"Created run folder: {run_folder}")
     questions = get_questions_from_folder(questions_folder, settings)
-    logger.info(f"Found {len(questions)} questions to run.")
     few_shot_examples = prompt_gen.get_few_shot_examples(exercise_path)
     reasoning_info = prompt_gen.get_reasoning_information()
     information = prompt_gen.get_information(exercise_path)
@@ -362,9 +392,7 @@ def main():
         if args.model_source == "local":
             model_display_name, model_id = model_info
             if not is_model_installed(model_id, settings.ollama["host"]):
-                logger.warning(
-                    f"Model '{model_id}' is not installed locally. Pulling..."
-                )
+                logger.warning(f"Model '{model_id}' is not installed locally.")
                 pull_model(model_id, settings.ollama["host"])
                 if not is_model_installed(model_id, settings.ollama["host"]):
                     logger.error(f"Failed to install model '{model_id}'. Skipping.")
@@ -400,6 +428,7 @@ def main():
         opik_prompt_obj = prompt_gen.get_opik_prompt_object(
             settings.prompting_technique
         )
+
         trace = opik_client.trace(
             name=f"{os.path.basename(run_folder)}_{model_id}",
             metadata=trace_metadata,
@@ -411,9 +440,10 @@ def main():
                 args.model_source,
                 model_id,
                 str(settings.temperature),
-                args.exercise_folder
+                args.exercise_folder,
             },
         )
+
         run_questions_for_model(
             model_display_name,
             model_id,
@@ -429,12 +459,14 @@ def main():
             reasoning_info,
         )
         trace.end()
+
         stats_path = os.path.join(
             run_folder, model_id.replace("/", "_"), settings.files["stats_file_name"]
         )
         statistics.save_statistics(stats_path)
         statistics.log_statistics()
-    logger.info("\n=== All experiments completed ===", extra={"is_header": True})
+
+    logger.info("=== All experiments completed ===")
 
 
 if __name__ == "__main__":
