@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaClient:
-    def __init__(self, host, top_p=0.1, seed=27, timeout=60):
+    def __init__(self, host, top_p=0.1, seed=27, timeout=120):
         try:
             self.client = ollama.Client(host=host, timeout=timeout)
             self.top_p = top_p
@@ -20,8 +20,8 @@ class OllamaClient:
             )
             exit(1)
 
-    def chat(self, model, messages, stream=False, temperature=0.7):
-        options = {"temperature": temperature, "top_p": self.top_p, "seed": self.seed}
+    def chat(self, model, messages, stream=False, temperature=0.0):
+        options = {"temperature": temperature, "top_p": self.top_p, "seed": self.seed, "num_predict": 4096}
         try:
             response = self.client.chat(
                 model=model, messages=messages, stream=stream, options=options
@@ -38,7 +38,7 @@ class OllamaClient:
             )
             return None
 
-    def generate(self, model, prompt, temperature=0.7):
+    def generate(self, model, prompt, temperature=0.0):
         options = {"temperature": temperature, "top_p": self.top_p, "seed": self.seed}
         try:
             response = self.client.generate(model=model, prompt=prompt, options=options)
