@@ -7,7 +7,7 @@
 # Configuration
 
 MODEL_ID="all"
-NUM_RUNS=3
+NUM_RUNS=10
 EXERCISE_FOLDER="exam_01_oa"
 QUESTION_TYPE="open_answer"
 LANGUAGE="en"
@@ -17,7 +17,7 @@ PROMPT_TECHNIQUES=(
     "R3"
     "R4"
 )
-# TEMPERATURE=0.0
+
 TEMPERATURES=(
     0.0
     0.2
