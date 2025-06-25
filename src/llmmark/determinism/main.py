@@ -139,6 +139,7 @@ def run_questions_for_model(
     trace,
     few_shot_examples="",
     information="",
+    reasoning_info="",
 ):
     """Runs a series of questions against a specified model."""
     logger.info(
@@ -157,6 +158,7 @@ def run_questions_for_model(
             "question": question,
             "example": few_shot_examples,
             "info": information,
+            "reasoning_instructions": reasoning_info,
         }
 
         system_prompt = prompt_gen.get_system_prompt(
@@ -164,6 +166,7 @@ def run_questions_for_model(
             question_type=settings.question_type,
             **format_args,
         )
+        
         user_prompt = prompt_gen.get_user_prompt(
             prompt_key=settings.prompting_technique, **format_args
         )
@@ -382,6 +385,7 @@ def main():
     run_folder = create_run_folder(settings)
     questions = get_questions_from_folder(questions_folder, settings)
     few_shot_examples = prompt_gen.get_few_shot_examples(exercise_path)
+    reasoning_info = prompt_gen.get_reasoning_information()
     information = prompt_gen.get_information(exercise_path)
 
     for model_info in selected_models_info:
@@ -451,6 +455,7 @@ def main():
             trace,
             few_shot_examples,
             information,
+            reasoning_info,
         )
         trace.end()
 

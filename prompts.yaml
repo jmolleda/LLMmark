@@ -7,6 +7,27 @@ en:
     You must respond with exactly one of the following options: [a], [b], [c], [d], [e] or [f].
     Your response must match the format of the options exactly, including brackets and lowercase letters. Provide an answer to the following question. 
 
+  reasoning_instructions: |
+    Your input fields are:
+      1. `question` (str): The question to answer
+      Your output fields are:
+      1. `thought` (str): Your thinking process (step-by-step reasoning).
+      2. `answer` (str): The final answer.
+      All interactions will be structured in the following way, with the appropriate values filled in.
+
+      [[ ## question ## ]]
+      question
+
+      [[ ## thought ## ]]
+      thought
+
+      [[ ## answer ## ]]
+      answer
+
+      [[ ## completed ## ]]
+      In adhering to this structure, your objective is: 
+      Answer questions with short factoid answers, including a thought process.
+
   # Evaluation prompts
   evaluation:
     task_introduction: "You are an expert judge evaluating the quality of a generated answer compared to a reference answer for a given question. Your goal is to determine how well the Model Answer fulfills the request in the Question, using the Expected Answer as the ground truth"
@@ -33,55 +54,127 @@ en:
   # S1 - Standard, Zero-shot and Task-Oriented
   S1: 
     system: ""
-    user: "Do not include any additional text or explanations in your response, just the answer to the question. Question: {question}"
+    user: |
+      Do not include any additional text or explanations in your response, just the answer to the question.
+      
+      Question: {question}"
   # S2 - Standard, Zero-shot and Role-Oriented
   S2: 
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content."
-    user: "Do not include any additional text or explanations in your response, just the answer to the question. Question: {question}"
+    user: |
+      Do not include any additional text or explanations in your response, just the answer to the question.
+      
+      Question: {question}"
   #S3 - Standard, Few-shot and Task-Oriented
   S3: 
     system: ""
-    user: "Given the following example: {example}, answer the following question. Do not include any additional text or explanations in your response, just the answer to the question. Question: {question}"
+    user: |
+      Given the following example: {example}
+      
+      Answer the following question. Do not include any additional text or explanations in your response, just the answer to the question.
+      
+      Question: {question}
   # S4 - Standard, Few-shot and Role-Oriented
   S4: 
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content."
-    user: "Given the following example: {example}, answer the following question. Do not include any additional text or explanations in your response, just the answer to the question. Question: {question}"
+    user: |
+      Given the following example: {example}
+      
+      Answer the following question. Do not include any additional text or explanations in your response, just the answer to the question.
+      
+      Question: {question}
 
   # Reasoning Prompts
   # R1 - Reasoning, Zero-shot and Task-Oriented
   R1: 
-    system: ""
-    user: "Provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning. Question: {question}"
+    system: |
+      {reasoning_instructions}
+    user: |
+      Provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning.
+      Think step-by-step before answering.
+      Your thought process must be clear and detailed, but concise.
+      DO NOT repeat steps or get stuck in a loop.
+      Ensure your reasoning concludes clearly before the final answer.
+      Your final answer must be concise.
+
+      Question: {question}
   # R2 - Reasoning, Zero-shot and Role-Oriented
   R2: 
-    system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content."
-    user: "Provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning. Question: {question}"
+    system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content. {reasoning_instructions}"
+    user: |
+      Provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning.
+      Think step-by-step before answering.
+      Your thought process must be clear and detailed, but concise.
+      DO NOT repeat steps or get stuck in a loop.
+      Ensure your reasoning concludes clearly before the final answer.
+      Your final answer must be concise.
+
+      Question: {question}
   # R3 - Reasoning, Few-shot and Task-Oriented
   R3: 
-    system: ""
-    user: "Given the following example: {example}, provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning. Question: {question}"
+    system: "{reasoning_instructions}"
+    user: | 
+      Given the following example: {example}
+      Provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning.
+      Think step-by-step before answering.
+      Your thought process must be clear and detailed, but concise.
+      DO NOT repeat steps or get stuck in a loop.
+      Ensure your reasoning concludes clearly before the final answer.
+      Your final answer must be concise.
+
+      Question: {question}
   # R4 - Reasoning, Few-shot and Role-Oriented
   R4: 
-    system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content."
-    user: "Given the following example: {example}, provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning. Question: {question}"
+    system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students. Your task is to answer a student's question about the course content. {reasoning_instructions}"
+    user: |
+      Given the following example: {example}
+
+      Provide a step-by-step explanation for the answer to the following question, including all necessary calculations and reasoning.
+      Think step-by-step before answering.
+      Your thought process must be clear and detailed, but concise.
+      DO NOT repeat steps or get stuck in a loop.
+      Ensure your reasoning concludes clearly before the final answer.
+      Your final answer must be concise.
+
+      Question: {question}
 
   # Definition-based Prompts
   # D1 - Definition-based, Zero-shot and Task-Oriented
   D1: 
     system: ""
-    user: "Considering this information: {info}, provide an answer to the following question. Question: {question}"
+    user: |
+      Considering this information: {info}
+    
+      Provide an answer to the following question.
+      
+      Question: {question}"
   # D2 - Definition-based, Zero-shot and Role-Oriented
   D2: 
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students."
-    user: "Considering this information: {info}, provide an answer to the following question. Question: {question}"
+    user: |
+      Considering this information: {info}
+      
+      Provide an answer to the following question.
+      
+      Question: {question}"
   # D3 - Definition-based, Few-shot and Task-Oriented
   D3: 
     system: ""
-    user: "Given the following example: {example} and considering this information: {info}, provide an answer to the following question. Question: {question}"
+    user: |
+      Given the following example: {example} and considering this information: {info}
+      
+      Provide an answer to the following question.
+      
+      Question: {question}
   # D4 - Definition-based, Few-shot and Role-Oriented
   D4: 
     system: "You are a university professor teaching the course Computers and Networks Fundamentals to first-year engineering students."
-    user: "Given the following example: {example}, considering this information: {info}, provide an answer to the following question. Question: {question}"
+    user: |
+      Given the following example: {example} and considering this information: {info}
+      
+      Provide an answer to the following question.
+      
+      Question: {question}
 
 es:
   # Base prompts in Spanish
@@ -92,56 +185,149 @@ es:
     Debes responder con exactamente una de las siguientes opciones: [a], [b], [c], [d], [e] o [f].
     Tu respuesta debe coincidir exactamente con el formato de las opciones, incluyendo los corchetes y las letras minúsculas. Proporciona una respuesta a la siguiente pregunta. 
 
+  reasoning_instructions: |
+    Tus campos de entrada son:
+    1. `pregunta` (str): La pregunta a responder
+    Tus campos de salida son:
+    1. `thought` (str): Tu proceso de pensamiento (razonamiento paso a paso).
+    2. `answer` (str): La respuesta final.
+    Todas las interacciones se estructurarán de la siguiente manera, rellenando los valores correspondientes.
+
+    [[ ## pregunta ## ]]
+    pregunta
+
+    [[ ## pensamiento ## ]]
+    pensamiento
+
+    [[ ## respuesta ## ]]
+    respuesta
+
+    [[ ## completado ## ]]
+    Siguiendo esta estructura, tu objetivo es: 
+    Responder a las preguntas con datos breves que incluyan un proceso de reflexión.
+
   # Standard Prompts
   # S1 - Standard, Zero-shot and Task-Oriented
   S1:
     system: ""
-    user: "No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta. Pregunta: {question}"
+    user: |
+      No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta.
+      
+      Pregunta: {question}
   # S2 - Standard, Zero-shot and Role-Oriented
   S2:
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería. Tu tarea es responder a la pregunta de un estudiante sobre el contenido del curso."
-    user: "No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta. Pregunta: {question}"
+    user: |
+      No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta.
+      
+      Pregunta: {question}
   # S3 - Standard, Few-shot and Task-Oriented
   S3:
     system: ""
-    user: "Dada el siguiente ejemplo: {example}, responde a la siguiente pregunta. No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta. Pregunta: {question}"
+    user: |
+      Dado el siguiente ejemplo: {example}
+
+      Responde a la siguiente pregunta. No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta.
+      
+      Pregunta: {question}
   
   S4: 
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería. Tu tarea es responder a la pregunta de un estudiante sobre el contenido del curso."
-    user: "Dado el siguiente ejemplo: {example}, responde a la siguiente pregunta. No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta. Pregunta: {question}"
+    user: |
+      Dado el siguiente ejemplo: {example}
+
+      Responde a la siguiente pregunta. No incluyas ningún texto o explicaciones adicionales en tu respuesta, solo la respuesta a la pregunta.
+      
+      Pregunta: {question}
 
   # Reasoning Prompts
   # R1 - Reasoning, Zero-shot and Task-Oriented
   R1: 
-    system: ""
-    user: "Proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios. Pregunta: {question}"
+    system: "{reasoning_instructions}"
+    user: |
+      Proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios.
+      Piensa paso a paso antes de responder.
+      Tu proceso de razonamiento debe ser claro y detallado, pero conciso.
+      NO repitas pasos ni te quedes atascado en un bucle.
+      Asegúrate de que tu razonamiento concluye claramente antes de la respuesta final.
+      Tu respuesta final debe ser concisa.
+
+      Pregunta: {question}
   # R2 - Reasoning, Zero-shot and Role-Oriented
   R2: 
-    system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería. Tu tarea es responder a la pregunta de un estudiante sobre el contenido del curso."
-    user: "Proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios. Pregunta: {question}"
+    system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería. Tu tarea es responder a la pregunta de un estudiante sobre el contenido del curso. {reasoning_instructions}"
+    user: |
+      Proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios.
+      Piensa paso a paso antes de responder.
+      Tu proceso de razonamiento debe ser claro y detallado, pero conciso.
+      NO repitas pasos ni te quedes atascado en un bucle.
+      Asegúrate de que tu razonamiento concluye claramente antes de la respuesta final.
+      Tu respuesta final debe ser concisa.
+
+      Pregunta: {question}
   # R3 - Reasoning, Few-shot and Task-Oriented
   R3: 
-    system: ""
-    user: "Dado el siguiente ejemplo: {example}, proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios. Pregunta: {question}"
+    system: "{reasoning_instructions}"
+    user: |
+      Dado el siguiente ejemplo: {example}
+
+      Proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios.
+      Piensa paso a paso antes de responder.
+      Tu proceso de razonamiento debe ser claro y detallado, pero conciso.
+      NO repitas pasos ni te quedes atascado en un bucle.
+      Asegúrate de que tu razonamiento concluye claramente antes de la respuesta final.
+      Tu respuesta final debe ser concisa.
+
+      Pregunta: {question}
   # R4 - Reasoning, Few-shot and Role-Oriented
   R4: 
-    system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería."
-    user: "Dado el siguiente ejemplo: {example}, proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios. Pregunta: {question}"
+    system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería. Tu tarea es responder a la pregunta de un estudiante sobre el contenido del curso. {reasoning_instructions}"
+    user: |
+      Dado el siguiente ejemplo: {example}
+      
+      Proporciona una explicación paso a paso para la respuesta a la siguiente pregunta, incluyendo todos los cálculos y razonamientos necesarios.
+      Piensa paso a paso antes de responder.
+      Tu proceso de razonamiento debe ser claro y detallado, pero conciso.
+      NO repitas pasos ni te quedes atascado en un bucle.
+      Asegúrate de que tu razonamiento concluye claramente antes de la respuesta final.
+      Tu respuesta final debe ser concisa.
+
+      Pregunta: {question}
 
   # Definition-based Prompts
   # D1 - Definition-based, Zero-shot and Task-Oriented
   D1: 
     system: ""
-    user: "Considerando esta información: {info}, proporciona una respuesta a la siguiente pregunta. Pregunta: {question}"
+    user: |
+      Considerando esta información: {info}
+
+      Proporciona una respuesta a la siguiente pregunta.
+      
+      Pregunta: {question}
   # D2 - Definition-based, Zero-shot and Role-Oriented
   D2: 
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería."
-    user: "Considerando esta información: {info}, proporciona una respuesta a la siguiente pregunta. Pregunta: {question}"
+    user: |
+      Considerando esta información: {info}
+
+      Proporciona una respuesta a la siguiente pregunta.
+      
+      Pregunta: {question}
   # D3 - Definition-based, Few-shot and Task-Oriented
   D3: 
     system: ""
-    user: "Dado el siguiente ejemplo: {example}, considerando esta información: {info}, proporciona una respuesta a la siguiente pregunta. Pregunta: {question}"
+    user: |
+      Dado el siguiente ejemplo: {example} y considerando esta información: {info}
+      
+      Proporciona una respuesta a la siguiente pregunta.
+      
+      Pregunta: {question}
   # D4 - Definition-based, Few-shot and Role-Oriented
   D4: 
     system: "Eres un profesor universitario que enseña el curso Fundamentos de Computadores y Redes a estudiantes de primer año de ingeniería."
-    user: "Dado el siguiente ejemplo: {example}, considerando esta información: {info}, proporciona una respuesta a la siguiente pregunta. Pregunta: {question}"
+    user: |
+      Dado el siguiente ejemplo: {example} y considerando esta información: {info}
+      
+      Proporciona una respuesta a la siguiente pregunta.
+      
+      Pregunta: {question}

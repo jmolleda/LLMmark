@@ -115,6 +115,19 @@ class PromptGenerator:
         except Exception as e:
             logger.error(f"Error loading few-shot examples from {file_path}: {e}")
             return ""
+        
+        
+    def get_reasoning_information(self):
+        lang = self.settings.language
+        try:
+            template = self.prompts_data[lang]["reasoning_instructions"]
+            return template
+        except KeyError as e:
+            logger.error(
+                f"User prompt key not found: {e}. Check prompts.yaml for lang='{lang}', key='reasoning_info'"
+            )
+            raise
+        
 
     def get_information(self, question_folder: str) -> str:
         info_file = Path(question_folder) / self.settings.information_file
