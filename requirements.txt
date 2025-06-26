@@ -1,4 +1,9 @@
+dspy==2.6.27
+litellm==1.73.1
 ollama==0.5.1
-openai==1.82.1
+openai==1.91.0
+opik==1.7.31
 PyYAML==6.0.2
-Requests==2.32.3
+PyYAML==6.0.2
+Requests==2.32.4
+rouge_score==0.1.2
