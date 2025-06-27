@@ -220,7 +220,7 @@ def run_questions_for_model(
                 f"{log_prefix} | Time:{response_time}s | Answer: {answer_clean}"
             )
 
-            statistics.record_experiment(True, response_time)
+            statistics.record_experiment(response_time)
             outputs.append(
                 {
                     "question": question,
@@ -260,8 +260,10 @@ def run_questions_for_model(
 
 def main():
     """Main entry point for the LLMmark determinism runner."""
-    setup_logging()
     settings = Settings()
+    run_folder = create_run_folder(settings)
+    log_file_path = os.path.join(run_folder, "llmmark_determinism.log")
+    setup_logging(log_file_path)
     opik_client = Opik(project_name="LLMmark_determinism")
 
     parser = argparse.ArgumentParser(description="LLMmark determinism runner.")
@@ -382,11 +384,26 @@ def main():
         )
         exit(1)
 
-    run_folder = create_run_folder(settings)
+    
     questions = get_questions_from_folder(questions_folder, settings)
     few_shot_examples = prompt_gen.get_few_shot_examples(exercise_path)
     reasoning_info = prompt_gen.get_reasoning_information()
     information = prompt_gen.get_information(exercise_path)
+    
+    statistics = Statistics()
+    run_parameters = {
+        "question_type": args.question_type,
+        "language": args.language,
+        "model_source": args.model_source,
+        "model_id_arg": args.model_id,
+        "prompting_technique": args.prompting_technique,
+        "num_runs_per_question": args.num_runs,
+        "temperature": args.temperature,
+        "top_p": args.top_p,
+        "exercise_folder": args.exercise_folder,
+    }
+    
+    statistics.set_run_parameters(run_parameters)
 
     for model_info in selected_models_info:
         if args.model_source == "local":
@@ -412,7 +429,7 @@ def main():
                 top_p=settings.top_p,
             )
 
-        statistics = Statistics()
+        
         trace_metadata = {
             "model_id": model_id,
             "model_display_name": model_display_name,

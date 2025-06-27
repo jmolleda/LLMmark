@@ -1,8 +1,6 @@
-# llmmark/logger_config.py
-
 import logging
 import sys
-
+import os
 
 class CustomFormatter(logging.Formatter):
     """A custom log formatter with colors and cleaner output for the application."""
@@ -37,9 +35,10 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def setup_logging():
+def setup_logging(log_file_path=None):
     """
     Configures the root logger for clean, colored output and silences noisy libraries.
+    If log_file_path is provided, logs will also be written to the specified file.
     """
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
@@ -47,10 +46,20 @@ def setup_logging():
     if root_logger.hasHandlers():
         root_logger.handlers.clear()
 
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(CustomFormatter())
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(CustomFormatter())
+    root_logger.addHandler(console_handler)
 
-    root_logger.addHandler(handler)
+    if log_file_path:
+        try:
+            # Create directory if it does not exist
+            os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+            file_handler = logging.FileHandler(log_file_path, encoding="utf-8")
+            file_handler.setFormatter(logging.Formatter("[%(levelname)s] %(name)s: %(message)s"))
+            root_logger.addHandler(file_handler)
+            root_logger.info(f"Logging to file: {log_file_path}")
+        except IOError as e:
+            root_logger.error(f"Could not set up file logger to {log_file_path}: {e}")
 
     # Silence noisy third-party libraries by setting their log level higher
     noisy_loggers = ["httpx", "opik", "urllib3", "asyncio", "comet_ml"]

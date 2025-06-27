@@ -103,8 +103,12 @@ def group_by_question(data):
 
 
 def main():
-    setup_logging()
     settings = Settings()
+    run_path = os.path.join(settings.experiments_folder, args.run_folder)
+    
+    log_file_path = os.path.join(run_path, "llmmark_evaluation.log")
+    setup_logging(log_file_path)
+    
     opik_client = Opik(project_name="LLMmark_evaluation")
 
     parser = argparse.ArgumentParser(description="LLMmark evaluation runner.")
@@ -125,7 +129,7 @@ def main():
         extra={"is_header": True},
     )
     prompt_gen = PromptGenerator(settings=settings)
-    run_path = os.path.join(settings.experiments_folder, args.run_folder)
+    
 
     if not os.path.isdir(run_path):
         logger.error(f"Run folder not found at: {run_path}")

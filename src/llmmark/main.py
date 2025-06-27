@@ -178,7 +178,7 @@ def run_questions_for_model(
             logger.info(
                 f"  [Run {run_idx + 1:02d}/{settings.num_runs_per_question:02d}] Time: {response_time:>5.2f}s | Answer: {answer_clean}"
             )
-            statistics.record_experiment(True, response_time)
+            statistics.record_experiment(response_time)
             outputs.append(
                 {
                     "question": question,
@@ -223,8 +223,12 @@ def run_questions_for_model(
 
 
 def main():
-    setup_logging()
     settings = Settings()
+    
+    run_folder = create_run_folder(settings)
+    log_file_path = os.path.join(run_folder, "llmmark_response_generation.log")
+    setup_logging(log_file_path)
+    
     opik_client = Opik(project_name="LLMmark_response_generation")
     parser = argparse.ArgumentParser(description="LLMmark benchmark runner.")
     parser.add_argument(
@@ -357,6 +361,21 @@ def main():
     few_shot_examples = prompt_gen.get_few_shot_examples(exercise_path)
     reasoning_info = prompt_gen.get_reasoning_information()
     information = prompt_gen.get_information(exercise_path)
+    
+    statistics = Statistics()
+    run_parameters = {
+        "question_type": args.question_type,
+        "language": args.language,
+        "model_source": args.model_source,
+        "model_id_arg": args.model_id,
+        "prompting_technique": args.prompting_technique,
+        "num_runs_per_question": args.num_runs,
+        "temperature": args.temperature,
+        "top_p": args.top_p,
+        "exercise_folder": args.exercise_folder,
+    }
+    
+    statistics.set_run_parameters(run_parameters)
 
     for model_info in selected_models_info:
         if args.model_source == "local":
