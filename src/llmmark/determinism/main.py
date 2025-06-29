@@ -447,7 +447,7 @@ def main():
         )
 
         trace = opik_client.trace(
-            name=f"{os.path.basename(run_folder)}_{model_id}",
+            name=f"{os.path.basename(run_folder)}_{model_id}_{settings.temperature}",
             metadata=trace_metadata,
             prompt=opik_prompt_obj,
             tags={
