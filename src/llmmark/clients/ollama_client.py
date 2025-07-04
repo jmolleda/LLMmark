@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaClient:
-    def __init__(self, host, top_p=0.1, seed=27, timeout=120):
+    def __init__(self, host, top_p=0.1, seed=27, timeout=200):
         try:
             self.client = ollama.Client(host=host, timeout=timeout)
             self.top_p = top_p

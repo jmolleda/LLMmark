@@ -197,6 +197,12 @@ def run_questions_for_model(
                 "iteration": run_idx + 1,
                 "correct_answer": correct_answer,
                 "question_type": settings.question_type,
+                "language": settings.language,
+                "prompting_technique": settings.prompting_technique,
+                "temperature": settings.temperature,
+                "top_p": settings.top_p,
+                "num_runs_per_question": settings.num_runs_per_question,
+                "response_time (s)": response_time,
             }
             trace.span(
                 name=f"q{idx}_r{run_idx + 1}",
@@ -333,7 +339,7 @@ def main():
         client = OllamaClient(
             host=settings.ollama["host"],
             top_p=settings.top_p,
-            timeout=settings.ollama.get("timeout", 120),
+            timeout=settings.ollama.get("timeout", 200),
         )
         model_ids_to_run = (
             [m[1] for m in models_list]
