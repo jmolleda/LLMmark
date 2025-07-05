@@ -129,7 +129,7 @@ def run_questions_for_model(
     statistics,
     trace,
     few_shot_examples="",
-    information="",
+    information_path="",
     reasoning_info="",
 ):
     logger.info(
@@ -138,12 +138,21 @@ def run_questions_for_model(
     )
     model_run_folder = os.path.join(run_folder, model_id.replace("/", "_"))
     os.makedirs(model_run_folder, exist_ok=True)
+
     for idx, (filename, question) in enumerate(questions, 1):
         match = re.search(r"<(.*)>", question, re.DOTALL)
         correct_answer = match.group(1).strip() if match else ""
         if match:
             question = re.sub(r"<.*?>", "", question).strip()
+
         logger.info(f"\n> Question {idx:02d}/{len(questions):02d}: {question}")
+
+        # Definition-based prompts
+        if information_path != "":
+            information = prompt_gen.get_information(information_path, question)
+        else:
+            information = ""
+
         format_args = {
             "question": question,
             "example": few_shot_examples,
@@ -366,7 +375,7 @@ def main():
     logger.info(f"Found {len(questions)} questions to run.")
     few_shot_examples = prompt_gen.get_few_shot_examples(exercise_path)
     reasoning_info = prompt_gen.get_reasoning_information()
-    information = prompt_gen.get_information(exercise_path)
+    information_path = exercise_path if settings.prompting_technique.startswith("D") else ""
     
     statistics = Statistics()
     run_parameters = {
@@ -450,7 +459,7 @@ def main():
             statistics,
             trace,
             few_shot_examples,
-            information,
+            information_path,
             reasoning_info,
         )
         trace.end()
