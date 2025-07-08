@@ -9,9 +9,10 @@ This study is based on local models that are supported using the [Ollama](https:
 
 ## ✍️ Authors
 
-**Coral Izquierdo Muñiz** - [GitHub](https://github.com/coral2742) [LinkedIn](https://www.linkedin.com/in/coral-izquierdo/) 
-** Julio Molleda Meré - [Tenured Associate Professor of Computer Architecture and Technology
-Department of Computer Science and Engineering - University of Oviedo]
+- **Coral Izquierdo Muñiz** - [GitHub](https://github.com/coral2742) [LinkedIn](https://www.linkedin.com/in/coral-izquierdo/) 
+
+- **Julio Molleda Meré** - Tenured Associate Professor of Computer Architecture and Technology
+Department of Computer Science and Engineering - University of Oviedo
 
 ## 🚀 Getting Started
 
