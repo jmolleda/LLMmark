@@ -69,6 +69,7 @@ def calculate_geval(
         )
         geval_input = f"Question: {question}\nExpected Answer: {expected_answer}\nModel Answer: {model_output}"
         score_result = metric.score(output=geval_input)
+
         if score_result is None:
             raise ValueError("GEval metric.score() returned None.")
         return {"geval_score": score_result.value, "geval_reason": score_result.reason}
@@ -103,14 +104,6 @@ def group_by_question(data):
 
 
 def main():
-    settings = Settings()
-    run_path = os.path.join(settings.experiments_folder, args.run_folder)
-    
-    log_file_path = os.path.join(run_path, "llmmark_evaluation.log")
-    setup_logging(log_file_path)
-    
-    opik_client = Opik(project_name="LLMmark_evaluation")
-
     parser = argparse.ArgumentParser(description="LLMmark evaluation runner.")
     parser.add_argument(
         "--run-folder",
@@ -123,6 +116,14 @@ def main():
         help="Specific model ID (folder name) to evaluate, or 'all' for every model in the run.",
     )
     args = parser.parse_args()
+
+    settings = Settings()
+    run_path = os.path.join(settings.experiments_folder, args.run_folder)
+    
+    log_file_path = os.path.join(run_path, "llmmark_evaluation.log")
+    setup_logging(log_file_path)
+    
+    opik_client = Opik(project_name="LLMmark_evaluation")
 
     logger.info(
         f"--- Starting Evaluation for Run: '{args.run_folder}', Model(s): '{args.model_id}' ---",
