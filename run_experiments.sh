@@ -6,31 +6,32 @@
 
 # Configuration
 MODELS=(
-    "deepseek-r1:1.5b"
-    # "gemma3:1b"
-    # "gemma3:4b"
-    # "llama3.2:1b"
-    # "moondream:1.8b"
-    # "smollm2:1.7b"
-    # "tinyllama:1.1b"
-    # "qwen3:0.6b"
-    # "qwen3:1.7b"
-    # "qwen3:4b"
+    "gemma3n:e2b"
 )
 
 
 PROMPT_TECHNIQUES=(
+    "S1"
+    "S2"
+    "S3"
+    "S4"
+    "R1"
+    "R2"
+    "R3"
     "R4"
-    # "S1"
-    # "D1"
+    "D1"
+    "D2"
+    "D3"
+    "D4"
 )
 
 EXERCISE_FOLDERS=(
-    "exam_01_oa"
-    # "exercises_01_oa"
+    "exercises_03_mc"
+    "exercises_04_mc"
+    "exercises_05_mc"
 )
 
-QUESTION_TYPE="open_answer"
+QUESTION_TYPE="multiple_choice"
 LANGUAGE="en"
 NUM_RUNS=1
 TEMPERATURE=0.0

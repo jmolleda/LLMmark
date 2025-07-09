@@ -1,9 +1,13 @@
-from typing import List, Dict
+from typing import Dict
 import yaml
 import opik
 from pathlib import Path
 from .settings import Settings
 import logging
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
+from langchain_community.vectorstores import FAISS
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +19,9 @@ class PromptGenerator:
         self.prompts_data = self._load_prompts_from_yaml()
         self.opik_prompts = {}
         self._register_prompts_in_opik()
+        self.retriever = None
+        self.rag_chain = None
+        self.loaded_document_path = None
 
     def _load_prompts_from_yaml(self) -> dict:
         if not self.prompts_path.exists():
@@ -53,6 +60,34 @@ class PromptGenerator:
                     name=opik_prompt_name, prompt=prompt_text
                 )
         logger.info("✅ Prompt registration complete.")
+
+    def _initialize_rag_chain(self, document_path: Path):
+        """Initializes the RAG chain for a given document.
+
+        Args:
+            document_path (Path): The path to the document to use for RAG.
+        """
+        if document_path.suffix.lower() == ".pdf":
+            loader = PyPDFLoader(str(document_path))
+        elif document_path.suffix.lower() == ".tex":
+            loader = TextLoader(str(document_path), encoding="cp1252")
+        else:
+            logger.error(f"Unsupported document type: {document_path.suffix}")
+            return
+
+        docs = loader.load()
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+        splits = text_splitter.split_documents(docs)
+        
+        # Gemini embeddings
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        vectorstore = FAISS.from_documents(documents=splits, embedding=embeddings)
+        #k = 3 as number of chunks to retrieve
+        self.retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+        self.loaded_document_path = document_path
+        
+        logger.info(f"Initialized RAG chain with {len(splits)} document splits from {document_path.name}")
+
 
     def get_system_prompt(self, prompt_key: str, question_type: str, **kwargs) -> str:
         lang = self.settings.language
@@ -115,8 +150,7 @@ class PromptGenerator:
         except Exception as e:
             logger.error(f"Error loading few-shot examples from {file_path}: {e}")
             return ""
-        
-        
+
     def get_reasoning_information(self):
         lang = self.settings.language
         try:
@@ -127,18 +161,21 @@ class PromptGenerator:
                 f"User prompt key not found: {e}. Check prompts.yaml for lang='{lang}', key='reasoning_info'"
             )
             raise
-        
-
-    def get_information(self, question_folder: str) -> str:
+    
+    def get_information(self, question_folder: str, question: str) -> str:
+        """
+        Retrieves relevant information for a given question using a RAG pipeline.
+        Initializes the pipeline on the first call for a given document.
+        """
         info_file = Path(question_folder) / self.settings.information_file
         if not info_file.exists():
-            logger.warning(
-                f"Information file not found at '{info_file}'. Proceeding without context."
-            )
+            logger.warning(f"Information file not found at '{info_file}'. Proceeding without context.")
             return ""
+
         try:
             with open(info_file, "r", encoding="utf-8") as f:
                 chapter_filename = yaml.safe_load(f).get("chapter_file")
+            
             if not chapter_filename:
                 return ""
 
@@ -147,15 +184,28 @@ class PromptGenerator:
                 / self.settings.language
                 / chapter_filename
             )
+
             if not chapter_file.exists():
                 logger.error(f"Chapter file '{chapter_file}' does not exist.")
                 return ""
 
-            with open(chapter_file, "r", encoding="cp1252", errors="ignore") as f:
-                logger.info(f"Loaded context information from: {chapter_file}")
-                return f.read()
+            # Initialize the RAG chain
+            if not self.retriever:
+                self._initialize_rag_chain(chapter_file)
+            
+            # Relevant documents related to the question
+            logger.info(f"Retrieving context for question: {question} from {chapter_file}")
+            if self.retriever:
+                docs = self.retriever.invoke(question)
+                # Combine the content of the retrieved documents
+                context = "\n\n".join([doc.page_content for doc in docs])
+                logger.info(f"Retrieved {len(docs)} relevant chunks for the question from {chapter_file}.")
+                return context
+            else:
+                return ""
+
         except Exception as e:
-            logger.error(f"Error loading context information: {e}")
+            logger.error(f"Error loading or retrieving context information: {e}")
             return ""
 
     def get_opik_prompt_object(self, prompt_key: str) -> opik.Prompt:

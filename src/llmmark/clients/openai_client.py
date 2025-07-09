@@ -12,7 +12,6 @@ class OpenAIClient:
         base_url: str,
         max_requests_per_minute=0,
         top_p=0.1,
-        seed=27,
         max_retries=3,
     ):
         if not api_key:
@@ -20,14 +19,13 @@ class OpenAIClient:
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.max_requests_per_minute = max_requests_per_minute
         self.top_p = top_p
-        self.seed = seed
         self.max_retries = max_retries
         self.request_delay = (
             (60 / max_requests_per_minute) if max_requests_per_minute > 0 else 0
         )
         logger.info(f"OpenAI client initialized for base_url: {base_url}")
 
-    def chat(self, model, messages, stream=False, temperature=0.7):
+    def chat(self, model, messages, stream=False, temperature=0.0):
         for attempt in range(self.max_retries):
             try:
                 if self.request_delay > 0:
@@ -41,7 +39,6 @@ class OpenAIClient:
                     messages=messages,
                     temperature=temperature,
                     stream=stream,
-                    seed=self.seed,
                     top_p=self.top_p,
                 )
 

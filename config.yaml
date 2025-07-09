@@ -8,6 +8,10 @@ ollama_models:
     model_id: "gemma3:1b"             # 815 MB
   - display_name: "Gemma3:4b"
     model_id: "gemma3:4b"             # 3.1 GB
+  - display_name: "Gemma3n:e2b"
+    model_id: "gemma3n:e2b"            # 5.6 GB
+  - display_name: "Gemma3n:e4b"
+    model_id: "gemma3n:e4b"            # 7.5 GB
   - display_name: "Llama3.2:1b"
     model_id: "llama3.2:1b"           # 1.3 GB
   - display_name: "Moondream 2"
@@ -34,10 +38,10 @@ openai_models:
     base_url: "https://api.openai.com/v1/"
     api_key: "OPENAI_API_KEY"
     max_requests_per_minute: 0
-  - display_name: "Gemini 2.0 Flash"
-    model_id: "gemini-2.0-flash"
+  - display_name: "Gemini 2.5 Pro"
+    model_id: "gemini-2.5-pro"
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
-    api_key: "GEMINI_API_KEY"
+    api_key: "GOOGLE_API_KEY"
     max_requests_per_minute: 15
 
 # Valid question_types:
@@ -81,14 +85,14 @@ prompting_techniques:
   - S4: "Standard, Few-shot and Role-Oriented"
   - R1: "Reasoning, Zero-shot and Task-Oriented"
   - R2: "Reasoning, Zero-shot and Role-Oriented"
-  - R3: "Reasoning, Few-shot and Role-Oriented"
-  - R4: "Reasoning, Few-shot and Task-Oriented"
+  - R3: "Reasoning, Few-shot and Task-Oriented"
+  - R4: "Reasoning, Few-shot and Role-Oriented"
   - D1: "Definition-based, Zero-shot and Task-Oriented"
   - D2: "Definition-based, Zero-shot and Role-Oriented"
   - D3: "Definition-based, Few-shot and Task-Oriented"
   - D4: "Definition-based, Few-shot and Role-Oriented"
 
-prompting_technique: "R1"
+prompting_technique: "S1"
 
 few_shot_examples_file: "few_shot_examples.yaml"
 

@@ -4,14 +4,17 @@
 # LLMmark - Evaluation Runner Script
 # ==============================================================================
 
-# --- Configuration ---
-# To evaluate all runs: RUN_FOLDERS_TO_EVALUATE=($(ls -d ../data/runs/run_* | xargs -n 1 basename))
+# RUN_FOLDERS_TO_EVALUATE=(
+#     "run_001"
+#     "run_002"
+# )
 
-RUN_FOLDERS_TO_EVALUATE=(
-    "run_014"
-    # "run_086"
-    # "run_087"
-)
+RUN_FOLDERS_TO_EVALUATE=($(find /home/cim/LLMmark/data/runs -maxdepth 1 -type d -regextype posix-extended -regex '.*/run_[0-9]{3,4}$' -printf "%f\n" 2>/dev/null))
+
+echo "Run folders to evaluate:"
+for RUN_FOLDER in "${RUN_FOLDERS_TO_EVALUATE[@]}"; do
+    echo "- $RUN_FOLDER"
+done
 
 # Evaluation
 
